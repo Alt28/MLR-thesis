@@ -34,7 +34,7 @@ The interface opens in dark mode with charcoal surfaces and mint accents. Tables
 
 Navigation contains **Analyze** and **About / Methodology**. The main Analyze page keeps dataset input on the left and results on the right, stacking them on smaller screens. Advanced settings, classification explanations, and research details expand when needed. The dark theme and bundled local font work offline.
 
-During analysis, the bus moves across its scene with rotating wheels and a moving road. **Play animation / Pause animation** controls only this loading scene and remembers your choice in this browser. With no saved choice, reduced-motion preferences are respected; Play explicitly enables the bus without changing other animations. Results still appear as soon as analysis finishes, with no artificial delay.
+During analysis, the bus automatically moves across its scene with rotating wheels and a moving road. The animation has no play/pause control and continues regardless of the device's reduced-motion preference. Results still appear as soon as analysis finishes, with no artificial delay.
 
 ## Dataset library and cloud import
 

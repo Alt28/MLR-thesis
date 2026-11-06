@@ -401,7 +401,6 @@
 .bus-shadow {position:absolute;left:7px;top:120px;width:145px;height:9px;border-radius:50%;background:#080e16;filter:blur(3px);opacity:.55}
 .bus-wheel {position:absolute;left:35px;top:95px;width:15px;height:15px;border-radius:50%;background:linear-gradient(0deg,transparent 42%,#435d62 42% 58%,transparent 58%),linear-gradient(90deg,transparent 42%,#435d62 42% 58%,transparent 58%);border:2px solid #aecac4}
 .bus-wheel.rear {left:110px}
-.research-app .bus-motion-toggle {display:flex;align-items:center;gap:5px;font-size:.75rem;min-height:32px;color:var(--muted)}
 .bus-road {position:absolute;left:12px;right:12px;top:132px;height:12px;border-top:1px solid #35504e;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 15%,#000 85%,transparent)}
 .bus-road span {display:block;width:calc(100% + 40px);height:2px;margin-top:6px;background:repeating-linear-gradient(90deg,#668b82 0 18px,transparent 18px 40px);animation:bus-road-travel .65s linear infinite}
 .bus-speed-lines {position:absolute;left:10px;top:57px;width:40px;display:grid;gap:10px}

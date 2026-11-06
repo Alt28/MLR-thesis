@@ -152,6 +152,10 @@ Production TypeScript/Vite build and the complete isolated browser workflow pass
 
 Production build and full isolated browser workflow passed. Tests confirm the bundled bus image loads, road transforms change during loading, the scene is decorative, reduced-motion preferences disable scene animation, mobile has no page overflow, and the scene disappears on completion. Test-only response control makes the pending state observable without delaying real analyses. Desktop/mobile loading screenshots were visually inspected. Backend calculations are unchanged; the MIT asset license is included in the build.
 
+## Automatic loading animation (6 November 2026)
+
+The Play/Pause control and saved motion preference were removed. The bus, wheels, and road autoplay during analysis, including when reduced motion is enabled. The browser test verifies that no animation toggle is shown and that all three elements continue moving. Analysis timing and backend calculations are unchanged.
+
 
 ## Documented unit defaults (5 November 2026)
 
