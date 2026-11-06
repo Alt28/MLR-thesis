@@ -11,7 +11,5 @@ services:
         value: 3.12.8
       - key: MLR_STORAGE_DIR
         value: /tmp/mlr-web-data
-      - key: MLR_REQUIRE_AUTH
-        value: "true"
-      - key: MLR_APP_PASSWORD
-        sync: false
+      - key: MLR_ALLOWED_ORIGINS
+        value: https://mlr-sigma.vercel.app
