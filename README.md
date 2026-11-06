@@ -5,6 +5,7 @@ A locally hosted web application for **Enhancement of Multiple Linear Regression
 **Status:** implemented for controlled thesis experiments. The supplied 40-row workbook declares simulated waiting times and repeated corridor-level context values. It is a prototype dataset, not final thesis evidence; no real-world accuracy claim is made. First use opens with an empty analysis page; later visits restore the last dataset used in this browser.
 
 ## Deploy an online demo
+https://mlr-sigma.vercel.app/ (system webapp)
 
 The web interface can be hosted on Vercel with its Python API on Render. The deployed demo is public and does not require a login. Everyone can access the same workspace and data, so do not upload confidential, identifying, or sensitive research data.
 
