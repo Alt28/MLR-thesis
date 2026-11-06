@@ -36,6 +36,33 @@ def test_validation_and_templates(web, fixture_data):
     assert web.post("/api/experiments", files={"file": ("corrupt.xlsx", b"not an Excel archive")}).status_code == 400
 
 
+def test_protected_deployment_requires_workspace_password(monkeypatch, tmp_path):
+    monkeypatch.setenv("MLR_REQUIRE_AUTH", "true")
+    monkeypatch.setenv("MLR_APP_PASSWORD", "test-only-workspace-password")
+    with TestClient(create_app(tmp_path / "protected")) as client:
+        assert client.get("/api/health").status_code == 200
+        assert client.get("/api/auth").json() == {"required": True, "authenticated": False}
+        assert client.get("/api/experiments").status_code == 401
+        assert client.post("/api/auth", json={"password": "incorrect"}).status_code == 401
+        assert client.post("/api/auth", json={"password": "test-only-workspace-password"}).status_code == 200
+        headers = {"X-MLR-Password": "test-only-workspace-password"}
+        assert client.get("/api/auth", headers=headers).json()["authenticated"] is True
+        assert client.get("/api/experiments", headers=headers).status_code == 200
+        assert client.post(
+            "/api/experiments",
+            headers={**headers, "Origin": "https://mlr.vercel.app"},
+            files={"file": ("bad.csv", b"invalid\nvalue", "text/csv")},
+        ).status_code == 400
+
+
+def test_protected_deployment_fails_closed_without_password(monkeypatch, tmp_path):
+    monkeypatch.setenv("MLR_REQUIRE_AUTH", "true")
+    monkeypatch.delenv("MLR_APP_PASSWORD", raising=False)
+    with pytest.raises(RuntimeError, match="Set MLR_APP_PASSWORD"):
+        with TestClient(create_app(tmp_path / "unconfigured")):
+            pass
+
+
 def test_complete_web_workflow(web, fixture_data):
     labeled = fixture_data.copy()
     labeled['Transport Mode'] = ['Bus', 'Train'] * (len(labeled) // 2)

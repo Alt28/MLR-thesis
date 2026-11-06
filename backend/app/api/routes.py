@@ -1,8 +1,10 @@
 from pathlib import Path
+import hmac
+import os
 from typing import Literal
 from fastapi import APIRouter, Request, UploadFile, File, Query, HTTPException
 from fastapi.responses import FileResponse
-from ..schemas.requests import AnalysisRequest, CloudImportRequest, ConfigRequest, ReviewRequest, TrainingRequest
+from ..schemas.requests import AnalysisRequest, AuthenticationRequest, CloudImportRequest, ConfigRequest, ReviewRequest, TrainingRequest
 from ..config import PROJECT_ROOT, MAX_UPLOAD_BYTES
 from src.config import ResearchConfig, PREDICTORS, TARGET
 from src.data_loader import write_templates
@@ -13,6 +15,30 @@ router = APIRouter(prefix="/api")
 @router.get("/health")
 def health():
     return {"status": "ok", "application": "transit-lab", "version": "2.0.0"}
+
+
+@router.get("/auth")
+def authentication_status(request: Request):
+    password = os.environ.get("MLR_APP_PASSWORD", "")
+    required = os.environ.get("MLR_REQUIRE_AUTH", "").lower() == "true"
+    supplied = request.headers.get("x-mlr-password", "")
+    return {
+        "required": required,
+        "authenticated": not required or bool(password and hmac.compare_digest(supplied.encode("utf-8"), password.encode("utf-8"))),
+    }
+
+
+@router.post("/auth")
+def authenticate(payload: AuthenticationRequest):
+    password = os.environ.get("MLR_APP_PASSWORD", "")
+    required = os.environ.get("MLR_REQUIRE_AUTH", "").lower() == "true"
+    if not required:
+        return {"authenticated": True}
+    if not password:
+        raise HTTPException(503, "Protected API is not configured.")
+    if not hmac.compare_digest(payload.password.encode("utf-8"), password.encode("utf-8")):
+        raise HTTPException(401, "That workspace password is incorrect.")
+    return {"authenticated": True}
 
 
 @router.get("/schema")

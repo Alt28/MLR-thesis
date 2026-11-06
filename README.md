@@ -4,6 +4,16 @@ A locally hosted web application for **Enhancement of Multiple Linear Regression
 
 **Status:** implemented for controlled thesis experiments. The supplied 40-row workbook declares simulated waiting times and repeated corridor-level context values. It is a prototype dataset, not final thesis evidence; no real-world accuracy claim is made. First use opens with an empty analysis page; later visits restore the last dataset used in this browser.
 
+## Deploy a protected online demo
+
+The web interface can be hosted on Vercel with its Python API on Render. The API requires a workspace password (`MLR_APP_PASSWORD`); the login page keeps it only for the current browser session. Everyone with that password shares one workspace, so do not upload confidential, identifying, or sensitive research data.
+
+1. In Render, create a **Blueprint** from this repository and set `MLR_APP_PASSWORD` when prompted. Use a unique password. The `render.yaml` service runs on Render's free instance.
+2. In Vercel, connect the same GitHub repository, set **Root Directory** to `frontend`, and deploy with the detected Vite settings (`npm run build`, output `dist`). `frontend/vercel.json` proxies `/api` requests to the Render service.
+3. Open the Vercel deployment and enter the Render workspace password.
+
+The free Render instance can sleep when idle and uses temporary storage. Experiments, uploaded datasets, and results may be deleted when the instance sleeps, restarts, or is redeployed. Use this only for a temporary demonstration; persistent thesis work requires a paid backend with persistent storage and a backup plan. The API is protected, but all authorized users share the same data.
+
 ## Start on this computer
 
 Double-click **`Start MLR System.bat`**. Your browser opens **http://127.0.0.1:8000**. Keep the server window open while using the app; press Ctrl+C in that window to stop it. The local Python environment, frontend dependencies, and compiled web interface are already installed on this computer.

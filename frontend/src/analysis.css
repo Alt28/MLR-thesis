@@ -160,7 +160,9 @@
 .export-result>span {font-size:0.8125rem;color:var(--muted)}
 .export-workbook {margin:16px 0 0}
 .export-links {display:flex;flex-direction:column;gap:14px;margin-top:24px;font-size:0.875rem}
-.export-links a {color:var(--teal)}
+.export-links .export-download-link {align-self:flex-start;border:0;padding:0;background:transparent;color:var(--teal);font:inherit;text-align:left}
+.export-links .export-download-link:hover:not(:disabled) {text-decoration:underline}
+.download-control {display:inline-flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:100%}
 .research-app .panel {animation:none}
 .research-app .button:hover:not(:disabled) {transform:translateY(-1px)}
 .research-app .button:active:not(:disabled) {transform:translateY(0) scale(.99)}
