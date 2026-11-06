@@ -1,0 +1,22 @@
+{
+  "retrieved_date": "2026-11-06",
+  "scope": "Philippines only; supporting records, not complete MLR data",
+  "ridership_rows": 121,
+  "ridership_blank_days": 4,
+  "schedule_rows": 1864,
+  "calendar_end": "20200630",
+  "files": {
+    "README.md": "f7065263949e88246a40162c4f1d89b3357f064d44be8223d8e30cd28db457e4",
+    "prepared\\metro_manila_historical_scheduled_frequency.csv": "b2f19e3a63d4d7c53fdae2b9999feff9fe81357850d727c79e1cc21bd3d1a248",
+    "prepared\\mrt3_daily_ridership_jan_apr_2024.csv": "a9c9336aef02e4d16c044f8c65b0d6894fbeabc3758a1249bfa8a403c116e435",
+    "prepared\\philippine_supporting_datasets.xlsx": "c4e759a40f6827a3afe4eb9bee6f7cc08360e7ac3ff19c3bdf3c1116cf18190f",
+    "raw\\mrt3_ridership_april_2024_mirror.pdf": "0acb59966c7cc21ab6d20d5104322d6cd5331e2991db0878aa8580f3495ee97e",
+    "raw\\sakay_gtfs\\calendar.txt": "ab0a9f7ade03f02c26680c59079904b1472ae3f6a55c5e338844ea9184f5ee54",
+    "raw\\sakay_gtfs\\feed_info.txt": "570169a309992fe5a4c533fa7c3c83720dbf7d222753548e0c9c3b941721b363",
+    "raw\\sakay_gtfs\\frequencies.txt": "c6744e26eff63ee795976fe5e1901cb5e2877449a83eeccab67a47a5fd1ab8da",
+    "raw\\sakay_gtfs\\LICENSE.md": "6a8489c1273963c301e332dc4b467c211f1ebe9d083f14eb51ecf53bbb7d6db6",
+    "raw\\sakay_gtfs\\README.md": "79276d1559ce8fd1488bde7e81076ea2271250365bfb16c74574f4ec924acf9f",
+    "raw\\sakay_gtfs\\routes.txt": "81c660d0930c4afc8b9493bbc29bd2393948f0f58bffcdd5a7378a26e3bc0d1c",
+    "raw\\sakay_gtfs\\trips.txt": "9d6c72fbd5aba7f1860facdb0b27a616706a1356128cc09ebdacdf25fc385e80"
+  }
+}
