@@ -1,0 +1,19 @@
+:root {
+  --bg:#0e1319;
+  --surface:#161d26;
+  --surface-raised:#1d2733;
+  --surface-hover:#23303d;
+  --text:#e7edf4;
+  --muted:#a1b0bf;
+  --subtle:#8697a8;
+  --teal:#72d9b7;
+  --teal-dark:#98e8cb;
+  --teal-soft:#1b3833;
+  --accent-ink:#102c24;
+  --border:#2b3745;
+  --radius:14px;
+  --ease:cubic-bezier(.2,0,.2,1);
+  --fast:140ms;
+  --normal:220ms;
+  color-scheme:dark;
+}

@@ -1,0 +1,140 @@
+/* Dark presentation: preserve the layout and give every surface a consistent palette. */
+html {background:var(--bg);color-scheme:dark;scrollbar-color:#455568 var(--bg)}
+body {background:var(--bg);color:var(--text)}
+::selection {background:#306d5c;color:#f0fff8}
+:focus-visible {outline-color:var(--teal)}
+.sidebar,.panel,.metric,.workflow-card,.dataset-strip,.modal,.modal-heading,.skip-link {background:var(--surface);color:var(--text);border-color:var(--border)}
+.topbar {background:#121922eb;border-color:var(--border)}
+.panel,.workflow-card {box-shadow:0 3px 9px #0000000d}
+.brand {color:var(--text)}
+.brand-light {color:#9bd8c1}
+.brand-icon,.workspace-avatar {background:#1c3531;border-color:#2a4942;color:var(--teal)}
+.brand small,.nav-label,.local-indicator,.local-pill,.breadcrumb,.main-footer,.main-footer a,.scope-note {color:var(--subtle)}
+.main-footer>span>span {color:#506174}
+.nav-search,kbd {background:#131b24;border-color:var(--border);color:var(--muted)}
+.nav-search:hover {background:var(--surface-raised);border-color:#405668}
+nav a,.guide-button,.breadcrumb strong {color:#a9b8c8}
+nav a:hover,.guide-button:hover {background:var(--surface-raised);color:var(--text)}
+nav a.active {background:#1c3933;color:#97e4c5}
+nav a.active svg {color:#80d8b3}
+.nav-active-dot,.dot.teal {background:#72d9b7}
+.dot.blue {background:#8dacf0}
+.dot {background:#7c92a5}
+.sidebar-foot,.local-indicator,.main-footer {border-color:var(--border)}
+.experiment-picker {color:var(--muted)}
+.experiment-picker select {background:transparent;color:var(--text)}
+option {background:var(--surface);color:var(--text)}
+
+.button {background:var(--surface-raised);border-color:#3a4959;color:#d7e2ed}
+.button:hover:not(:disabled) {background:#293747;border-color:#52697c;box-shadow:0 5px 12px #00000020}
+.button:active:not(:disabled) {background:#1d2a37;box-shadow:0 1px 3px #00000025}
+.button.primary {background:var(--teal);border-color:var(--teal);color:var(--accent-ink);box-shadow:0 2px 8px #00000018,inset 0 1px #ffffff20}
+.button.primary:hover:not(:disabled) {background:var(--teal-dark);border-color:var(--teal-dark);color:var(--accent-ink);box-shadow:0 5px 16px #70d8b51a}
+.button.primary:active:not(:disabled) {background:#5fc39f;border-color:#5fc39f}
+.button.subtle {background:transparent;border-color:transparent;color:#b8c9d4;box-shadow:none}
+.button.subtle:hover:not(:disabled) {background:#25372f;border-color:transparent;color:#d6f4e5;box-shadow:none}
+.icon-button {color:#a0b3c4}
+.icon-button:hover {background:var(--surface-hover);color:var(--teal)}
+.text-button,.text-button:hover {color:var(--teal)}
+button:disabled {opacity:.42}
+
+.welcome-panel {background:linear-gradient(110deg,#19332e 0%,#182a27 60%,#1b302a 100%);border-color:#2b473d}
+.welcome-panel h2 {color:#e2f4e9}
+.welcome-kicker {color:#91cbb0}
+.welcome-panel p {color:#b0c7bc}
+.welcome-panel small {color:#91ad9f}
+.process-node {background:#20392f;border-color:#3b5746;color:#a7c7a4;box-shadow:0 5px 12px #00000012}
+.process-node.main-node {background:#304c37;border-color:#486b49;color:#c0e0b2;box-shadow:0 0 0 7px #263d2c}
+.process-node span {color:#a0b99f}
+.process-line {background:#45624a}
+.next-step {background:#1a302a;border-color:#2b493b}
+.next-step h2 {color:#e2f4e9}
+.next-step p,.section-kicker {color:#a2c1ad}
+.next-icon {background:#254337;border-color:#375b46;color:#9ed6ab}
+.section-heading>span,.experiment-caption>span {color:var(--muted)}
+.workflow-card:hover {background:#1c2930;border-color:#456459;box-shadow:0 6px 18px #00000024}
+.workflow-card-top {color:#849e94}
+.step-number {background:#26352f;color:#a4bbb0}
+.workflow-card.complete .step-number {background:#254332;color:#a4d6ad}
+.workflow-card p,.metric-label,.metric small,.panel-heading p {color:var(--muted)}
+.workflow-arrow {color:#8cbfa2}
+.metric-label svg {color:#8aaba0}
+.metric.accent {background:#1a3027;border-color:#304c39}
+.metric.accent strong {color:#b1e2b0}
+.metric.accent .metric-label svg {color:#94c298}
+.panel-heading,.comparison-row,.variable-list>div,.details-list>div,.figure-downloads a,.guide-steps a {border-color:var(--border)}
+.comparison-row>span:first-child {color:#b4c3cf}
+.comparison-row.header,.comparison-row.header small {color:#9cabb9}
+.comparison-note,.classification-placeholder p {color:var(--muted)}
+.classification-placeholder h3 {color:#c8dcd0}
+.distribution span {color:#bac9d3}
+.bar-track {background:#273340}
+.badge {background:#273340;color:#bdcbd7}
+.badge.success,.badge.teal {background:#234135;color:#a1deb5}
+.badge.warning {background:#3d3321;color:#e8cb84}
+.badge.danger {background:#412b30;color:#edaba8}
+.class-0 {background:#7fcca4}.class-1 {background:#ddc47e}.class-2 {background:#dea281}.class-3 {background:#db959a}.class-4 {background:#95a8ba}
+
+input:not([type=checkbox]):not([type=file]),select,textarea {background:#111923;border-color:#394a5c;color:var(--text)}
+input:not([type=checkbox]):focus,select:focus,textarea:focus {border-color:var(--teal);box-shadow:0 0 0 3px #72d9b71f}
+input::placeholder,textarea::placeholder {color:#8598ac}
+input:disabled,select:disabled {background:#1c2631;color:#8e9dab}
+label {color:#c0cedb}
+label small,.muted {color:var(--muted)}
+.info-note {background:#1b302b;border-color:#304a41;color:#b0cbbd}
+.empty-icon,.upload-icon,.file-icon {background:#22382d;border-color:#34513d;color:#a1c799}
+.empty h3 {color:#bfd6c6}
+.empty p,.upload-zone p,.dataset-strip span:not(.badge) {color:var(--muted)}
+.upload-zone {background:#19271f;border-color:#49644b}
+.upload-zone:hover,.upload-zone.dragging {background:#22372a;border-color:#7caa7d}
+.template-links {color:#648469}
+.template-links a,.valid-check {color:#9bd0a2}
+.variable-number {color:#9fb5a2}
+.search>svg {color:#91aab7}
+.search input {background:#121c26!important;color:var(--text)}
+.table-scroll,.simple-table {scrollbar-color:#465b6d transparent}
+th {background:#1c2934;color:#afc4d3;border-color:#314351}
+td {color:#becdd9;border-color:#293946}
+td.numeric {color:#c2d6dd}
+tbody tr:hover {background:#1d2d37}
+.table-footer {color:#93adbb}
+.table-footer .icon-button {background:#1c2934;border-color:#394c5d}
+.inline-error,.status-message.error {background:#38262b;border-color:#654048;color:#f1b7b7}
+.status-message.success {background:#22382b;border-color:#3c5841;color:#b4dcb6}
+.status-message.processing {background:#1f3045;border-color:#385273;color:#b4cef3}
+fieldset,.form-actions {border-color:var(--border)}
+.modal {box-shadow:0 30px 100px #00000080}
+.modal::backdrop,.sidebar-scrim {background:#04090fc4}
+.modal-footer,.guide-note {background:#17242d;border-color:var(--border)}
+.segmented,.page-tabs {background:#111c25;border-color:#314351}
+.segmented button,.page-tabs button {color:#a6bbc8}
+.segmented button:hover,.page-tabs button:hover {background:#283c48;color:#d4e4ec}
+.segmented button.active,.page-tabs button.active {background:#2b443e;color:#c2eadb;box-shadow:0 2px 7px #00000020}
+.predictor-options label {border-color:#334b58;color:#bed0db}
+.predictor-options label:hover {border-color:#607d82}
+.predictor-options label.selected {background:#203b33;border-color:#527665}
+.interaction-preview {background:#172b24;border-color:#3c5c47;color:#b1cdae}
+.term {background:#1d3028;border-color:#354c3d;color:#b6ceb0}
+.term-group h3 {color:#a3ba9f}
+.model-equation {background:#192a22;color:#bad5ac}
+.details-list dd {color:#bed7b3}
+.warning-list {color:#dacb97}
+.research-chart {background:var(--surface)}
+.class-legend>div {background:var(--surface);border-color:var(--border);color:#c2d1db}
+.explanation-score {background:#20352b}
+.explanation-score strong {color:#bbdfa5}
+.explanation-score small {color:#a4bf9b}
+.figure-downloads a:hover {color:#a7d793}
+
+.command-modal .modal-heading h2,.command-input {color:#b0c5bb}
+.command-input input {color:var(--text)}
+.command-results button {color:#cbd9df}
+.command-results button.selected {background:#26443a;color:#c6ecd7}
+.command-results small,.command-footer {color:#a2b9b2}
+.command-results button>svg {color:#9cbcb0}
+.command-icon {background:#1f302b;border-color:#355044;color:#a0c5b2}
+.command-input,.command-footer {border-color:var(--border)}
+.guide-number {background:#263d2f;color:#b1d3a2}
+.guide-steps h3 {color:#c7deb7}
+.guide-steps p,.guide-note {color:#a6bda5}
+.guide-steps a>svg {color:#a2c397}

@@ -1,0 +1,56 @@
+import { useEffect, useState } from 'react'
+import { Plus, ShieldCheck } from 'lucide-react'
+import type { Workspace } from '../hooks/useExperiment'
+import type { Experiment, ResearchConfig, Row } from '../types'
+import { CATEGORICAL, LABELS, NUMERICAL, PREDICTORS, TARGET } from '../types'
+import { api } from '../services/api'
+import { InfoNote, Modal, Panel, format } from './Common'
+import { DataTable } from './DataTable'
+
+export function SplitSettings({s, w, close}: {s: Experiment; w: Workspace; close: () => void}) {
+  const [config, setConfig] = useState(structuredClone(s.config))
+  return <Modal canClose={!w.busy} title="Split & irregularity settings" close={close}><form onSubmit={e => {e.preventDefault(); void w.configure(config).then(close).catch(() => {})}}><div className="modal-body">{w.error && <div className="inline-error" role="alert">{w.error}</div>}<InfoNote>Changes create a new revision and clear trained results. Changes to the split or IQR flags also reset review decisions.</InfoNote><div className="form-grid"><label>Test fraction<input type="number" min="0.01" max="0.99" step="0.01" value={config.test_size} onChange={e => setConfig({...config, test_size: Number(e.target.value)})} required/></label><label>Random seed<input type="number" min="0" step="1" value={config.random_state} onChange={e => setConfig({...config, random_state: Number(e.target.value)})} required/></label><label>IQR multiplier<input type="number" min="0.1" step="0.1" value={config.iqr_multiplier} onChange={e => setConfig({...config, iqr_multiplier: Number(e.target.value)})} required/></label></div><fieldset><legend>Numerical fields to screen</legend>{[...NUMERICAL, TARGET].map(c => <label className="checkbox-line" key={c}><input type="checkbox" checked={config.iqr_columns.includes(c)} onChange={e => setConfig({...config, iqr_columns: e.target.checked ? [...config.iqr_columns, c] : config.iqr_columns.filter(x => x !== c)})}/>{c}</label>)}</fieldset></div><div className="modal-footer"><button type="button" className="button" onClick={close}>Cancel</button><button className="button primary" disabled={w.busy || !config.iqr_columns.length}>Save settings</button></div></form></Modal>
+}
+export function ReviewDialog({id, s, w, close}: {id: string; s: Experiment; w: Workspace; close: () => void}) {
+  const [original, setOriginal] = useState<Row | null>(null)
+  const [values, setValues] = useState<Record<string, string>>({})
+  const [action, setAction] = useState('retain')
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let active = true
+    api.record(s.id, id).then(data => {if (!active) return; setOriginal(data.original); setValues(Object.fromEntries([...PREDICTORS, TARGET].map(c => [c, String(data.decision?.corrections[c] ?? data.original[c])]))); setAction(data.decision?.action || 'retain'); setReason(data.decision?.reason || '')}).catch(e => setError(e.message))
+    return () => {active = false}
+  }, [id, s.id])
+  async function submit() {
+    if (!original) return
+    const changes: Record<string, string | number> = {}
+    if (action === 'correct') for (const c of [...PREDICTORS, TARGET]) {
+      const value = [...NUMERICAL, TARGET].includes(c) ? Number(values[c]) : values[c].trim()
+      if (String(value) !== String(original[c])) changes[c] = value
+    }
+    try {await w.review(id, action, reason, changes); close()} catch (e) {setError(e instanceof Error ? e.message : 'Review could not be saved.')}
+  }
+  return <Modal canClose={!w.busy} title={`Review observation ${id}`} close={() => {if (!w.busy) close()}}><form onSubmit={e => {e.preventDefault(); void submit()}}><div className="modal-body">{error && <div className="inline-error" role="alert">{error}</div>}<div className="segmented">{['retain', 'exclude', 'correct'].map(a => <button key={a} type="button" className={action === a ? 'active' : ''} onClick={() => setAction(a)}>{a.charAt(0).toUpperCase() + a.slice(1)}</button>)}</div><div className="form-grid">{[...PREDICTORS, TARGET].map(c => <label key={c}>{c}<input value={values[c] ?? ''} disabled={action !== 'correct'} type={[...NUMERICAL, TARGET].includes(c) ? 'number' : 'text'} min="0" step="any" required onChange={e => setValues({...values, [c]: e.target.value})}/></label>)}</div><label>Reason / source evidence<textarea required rows={3} value={reason} onChange={e => setReason(e.target.value)} placeholder="Explain how the source record supports this decision." maxLength={2000}/></label><p className="muted small-text"><ShieldCheck size={14}/> Your source file and held-out observations remain unchanged.</p></div><div className="modal-footer"><button type="button" className="button" onClick={close} disabled={w.busy}>Cancel</button><button className="button primary" disabled={w.busy || !original || !reason.trim()}>Save review decision</button></div></form></Modal>
+}
+
+export function SeveritySettings({s, w, onSaved}: {s: Experiment; w: Workspace; onSaved?: () => void}) {
+  const [config, setConfig] = useState<ResearchConfig>(structuredClone(s.config))
+  const [newCategories, setNewCategories] = useState<Record<string, string>>({})
+  const [extra, setExtra] = useState<Record<string, string[]>>({})
+  useEffect(() => {setConfig(structuredClone(s.config)); setExtra({})}, [s.id, s.revision])
+  const score = (factor: string, category: string, value: string) => {
+    const mapping = {...config.category_severity[factor]}
+    if (value === '') delete mapping[category]; else mapping[category] = Number(value)
+    setConfig({...config, category_severity: {...config.category_severity, [factor]: mapping}})
+  }
+  return <form className="page-stack" onSubmit={e => {e.preventDefault(); void w.configure(config).then(onSaved).catch(() => {})}}>{w.error && <div className="inline-error" role="alert">{w.error}</div>}<InfoNote>Unconfigured category scores are derived from reviewed-training category means and waiting-time quartiles. Set an override only with documented research rationale. Constant numerical variables remain unclassified. Saving creates a new revision and clears model results.</InfoNote><Panel title="Units & numerical direction" subtitle="Quartiles are learned only from reviewed training observations."><div className="panel-body form-grid"><label>Vehicle Frequency unit<input aria-label="Vehicle Frequency unit" value={config.vehicle_frequency_unit} onChange={e => setConfig({...config, vehicle_frequency_unit: e.target.value})} placeholder="vehicles/hour"/><small>Revised study measure: service frequency in vehicles/hour. Count serving vehicles over a documented time window, not fleet availability. Record observed versus scheduled frequency in Research documentation.</small>{!config.vehicle_frequency_unit.trim() && <button type="button" className="text-button" disabled={w.busy} onClick={()=>setConfig({...config, vehicle_frequency_unit:'vehicles/hour'})}>Use study frequency unit</button>}</label><label>Route Distance unit<input aria-label="Route Distance unit" value={config.route_distance_unit} onChange={e => setConfig({...config, route_distance_unit: e.target.value})} placeholder="e.g. km"/><small>Revised study unit: km. Use route length in the documented direction; convert source distances before changing this label.</small>{!config.route_distance_unit.trim() && <button type="button" className="text-button" disabled={w.busy} onClick={()=>setConfig({...config, route_distance_unit:"km"})}>Use study distance unit</button>}</label>{NUMERICAL.map(f => <label key={f}>{f}: severity direction<select value={config.numerical_directions[f] || ''} onChange={e => setConfig({...config, numerical_directions: {...config.numerical_directions, [f]: (e.target.value || null) as 'higher' | 'lower' | null}})}><option value="">Automatic: training relationship</option><option value="higher">Higher values → greater severity</option><option value="lower">Lower values → greater severity</option></select></label>)}</div></Panel>
+    {CATEGORICAL.map(f => {
+      const evidence = s.evidence.filter(row => row.Factor === f)
+      const categories = [...new Set([...evidence.map(row => String(row.Category)), ...Object.keys(config.category_severity[f] || {}), ...(extra[f] || [])])]
+      return <Panel key={f} title={`${f} scores`} subtitle="0 = normal · 1 = minor · 2 = moderate · 3 = severe"><div className="simple-table"><table><thead><tr><th>Recorded category</th><th>Training count</th><th>Mean actual wait (min)</th><th>Mapping / override</th></tr></thead><tbody>{categories.map(category => {const ev = evidence.find(row => row.Category === category); return <tr key={category}><td>{category}</td><td>{ev ? format(ev['Training Count']) : 'No training evidence'}</td><td>{format(ev?.['Mean Actual Wait'])}</td><td><select aria-label={`${f}: ${category} severity`} value={config.category_severity[f]?.[category] ?? ''} onChange={e => score(f, category, e.target.value)}><option value="">{typeof ev?.["Derived Severity Score"] === "number" ? `Training-derived / ${ev["Derived Severity Score"]}` : "Automatic: training data"}</option>{[0, 1, 2, 3].map(n => <option key={n} value={n}>{n} — {LABELS[n]}</option>)}</select></td></tr>})}</tbody></table></div><div className="add-category"><input aria-label={`Additional ${f} category`} placeholder="Another documented category (exact spelling)" value={newCategories[f] || ''} onChange={e => setNewCategories({...newCategories, [f]: e.target.value})}/><button type="button" className="button small" disabled={!newCategories[f]?.trim()} onClick={() => {setExtra({...extra, [f]: [...(extra[f] || []), newCategories[f].trim()]}); setNewCategories({...newCategories, [f]: ''})}}><Plus size={16}/> Add category</button></div></Panel>
+    })}
+    <div className="two-column"><Panel title="Predicted waiting-time bands" subtitle="Upper bounds in minutes for scores 0, 1, and 2. Above the last bound receives 3."><div className="panel-body form-grid">{config.wait_thresholds.map((value, i) => <label key={i}>Score {i} upper bound<input type="number" min="0.01" step="any" required value={value} onChange={e => setConfig({...config, wait_thresholds: config.wait_thresholds.map((v, n) => n === i ? Number(e.target.value) : v)})}/></label>)}</div></Panel><Panel title="Overall classification bands" subtitle="Lower bounds for minor, moderate, and severe. Scores at a boundary enter the higher band."><div className="panel-body form-grid">{config.station_thresholds.map((value, i) => <label key={i}>{LABELS[i + 1]} from<input type="number" min="0.01" max="2.99" step="any" required value={value} onChange={e => setConfig({...config, station_thresholds: config.station_thresholds.map((v, n) => n === i ? Number(e.target.value) : v)})}/></label>)}</div></Panel></div>
+    <Panel title="Current training quartiles" subtitle="For increasing severity: ≤ Q1 = 0, (Q1, Q2] = 1, (Q2, Q3] = 2, > Q3 = 3. Reverse direction uses 3 minus that score."><DataTable s={s} name="thresholds"/></Panel><div className="form-actions"><span className="muted">Negative predicted waits are floored at zero for classification only.</span><button className="button primary" disabled={w.busy}>Save severity definitions</button></div>
+  </form>
+}
