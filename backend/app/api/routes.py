@@ -78,6 +78,17 @@ def analyze(sid: str, payload: AnalysisRequest, request: Request):
     return request.app.state.store.analyze(sid, payload)
 
 
+@router.post("/experiments/{sid}/predict")
+async def predict(sid: str, request: Request, file: UploadFile = File(...)):
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    await file.close()
+    if len(content) > MAX_UPLOAD_BYTES: raise HTTPException(413, "The prediction dataset exceeds the 25 MB upload limit.")
+    if not content: raise ValueError("Choose a nonempty prediction dataset.")
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(
+        request.app.state.store.predict, sid, file.filename or "prediction.csv", content)
+
+
 @router.get("/experiments/{sid}/tables/{name}")
 def table(sid: str, name: str, request: Request, search: str = "", offset: int = Query(0, ge=0), limit: int = Query(25, ge=1, le=200), transport_mode: Literal["all", "bus", "train", "unspecified"] = "all"):
     return request.app.state.store.table(sid, name, search, offset, limit, transport_mode)

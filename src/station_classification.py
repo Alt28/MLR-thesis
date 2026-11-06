@@ -30,6 +30,51 @@ def station_label(score, thresholds=(.75, 1.5, 2.25)):
     return LABELS[np.searchsorted(thresholds, score, side="right")]
 
 
+def aggregate_station_scores(predictions, thresholds=(.75, 1.5, 2.25), station_column="Station ID"):
+    columns = ["Station ID", "Test Records", "Classifiable Records", "Unresolved Records",
+               "Mean Multi-Factor Station Score", "Overall Station Classification"]
+    station_names = {station_column.lower(), "station"}
+    source_column = next((column for column in predictions.columns
+                          if str(column).strip().lower() in station_names), None)
+    if source_column is None:
+        return pd.DataFrame(columns=columns), {
+            "available": False, "grouping_column": station_column,
+            "reason": f"Add a {station_column} column to enable station-level summaries.",
+            "station_count": 0, "ungrouped_records": len(predictions),
+        }
+
+    identifiers = predictions[source_column]
+    has_identifier = identifiers.notna() & identifiers.astype(str).str.strip().ne("")
+    grouped = pd.DataFrame({
+        "Station ID": identifiers.loc[has_identifier].astype(str).str.strip(),
+        "Multi-Factor Station Score": pd.to_numeric(
+            predictions.loc[has_identifier, "Multi-Factor Station Score"], errors="coerce"),
+    })
+    if grouped.empty:
+        return pd.DataFrame(columns=columns), {
+            "available": False, "grouping_column": source_column,
+            "reason": f"No test observations have a nonempty {source_column} value.",
+            "station_count": 0, "ungrouped_records": len(predictions),
+        }
+
+    summary = grouped.groupby("Station ID", sort=True).agg(
+        **{
+            "Test Records": ("Multi-Factor Station Score", "size"),
+            "Classifiable Records": ("Multi-Factor Station Score", "count"),
+            "Mean Multi-Factor Station Score": ("Multi-Factor Station Score", "mean"),
+        }
+    ).reset_index()
+    summary["Unresolved Records"] = summary["Test Records"] - summary["Classifiable Records"]
+    summary["Overall Station Classification"] = summary["Mean Multi-Factor Station Score"].map(
+        lambda score: station_label(score, thresholds) if pd.notna(score) else "Pending configuration")
+    summary = summary[columns]
+    return summary, {
+        "available": True, "grouping_column": source_column, "reason": None,
+        "station_count": len(summary), "ungrouped_records": int((~has_identifier).sum()),
+        "aggregation": "Mean of classifiable held-out observation scores per station; unresolved records are counted, not scored.",
+    }
+
+
 def category_evidence(training):
     frames = []
     for col in CATEGORICAL:

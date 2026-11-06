@@ -16,6 +16,11 @@ export interface Experiment {
   approved: boolean; config: ResearchConfig; records: number; training: number; reviewed_training: number;
   test: number; flagged: number; reviewed: number; metadata: string[]; trained: string[];
   metrics: { Model: string; MSE: number; RMSE: number }[];
+  mode_metrics: Row[];
+  station_aggregation: {
+    available: boolean; grouping_column: string; reason: string | null;
+    station_count: number; ungrouped_records: number; aggregation?: string;
+  };
   comparison: Row[]; conclusion: string | null; warnings: string[];
   provenance?: {status: 'prototype' | 'recorded_declared' | 'undocumented'; message: string; workbook_declares_prototype: boolean; workbook_notes: Record<string, string>[]; researcher_notes: Record<string, string>};
   transport?: {column: string | null; dataset_counts: Record<'bus' | 'train' | 'unspecified', number>; test_counts: Record<'bus' | 'train' | 'unspecified', number>; source: string};
@@ -25,6 +30,14 @@ export interface Experiment {
 }
 export interface ExperimentListItem { id: string; name: string; created: string; revision: number }
 export interface TableResult { columns: string[]; rows: Row[]; total: number; offset: number }
+export interface PredictionOutput {
+  columns: string[]; rows: Row[]; station_summary: Row[];
+  station_aggregation: {
+    available: boolean; grouping_column: string; reason: string | null;
+    station_count: number; ungrouped_records: number; aggregation?: string;
+  };
+  experiment_id: string; model_revision: number;
+}
 export const PREDICTORS = ['Traffic Condition', 'Weather Condition', 'Passenger Volume', 'Route Distance', 'Vehicle Frequency', 'Time of Day']
 export const CATEGORICAL = ['Traffic Condition', 'Weather Condition', 'Time of Day']
 export const NUMERICAL = ['Passenger Volume', 'Route Distance', 'Vehicle Frequency']

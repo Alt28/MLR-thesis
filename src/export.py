@@ -30,6 +30,8 @@ def result_tables(result):
     tables = {
         "predictions": result.predictions,
         "metrics": result.metrics,
+        "mode_metrics": result.mode_metrics,
+        "station_summary": result.station_summary,
         "comparison": result.comparison,
         "coefficients": coefficients,
         "interaction_coefficients": coefficients[coefficients.Type.isin(["pairwise", "higher-order"])],
@@ -115,6 +117,8 @@ def export_experiment(result, output_root="outputs"):
         "quantile_interpolation": "linear", "metrics_use_raw_predictions": True,
         "route_distance_training_pearson_correlation": result.classifier.distance_correlation,
         "classification_rules": rules, "research_protocol": study.get("metadata", {}), "data_provenance": provenance,
+        "mode_metrics": result.mode_metrics.to_dict(orient="records"),
+        "station_aggregation": result.station_aggregation,
         "comparison_conclusion": result.conclusion, "warnings": result.warnings,
     }
     joblib.dump({"original_baseline": study.get("original_model"), "models": result.models, "classifier": result.classifier, "config": config, "manifest": manifest}, directory / "models.joblib")

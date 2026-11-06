@@ -21,6 +21,10 @@ All learning uses the reviewed training partition after corrections/exclusions. 
 
 Increasing quartile scoring uses <=Q1: 0, (Q1,Q2]: 1, (Q2,Q3]: 2, >Q3: 3. Reverse scoring is 3 minus that score. Categories use increasing mean-wait severity. Every valid factor contributes exactly 1/7. Final bands are [0,.75), [.75,1.50), [1.50,2.25), [2.25,3].
 
+## Station-level reporting extension
+
+When held-out records include `Station ID` or `Station`, the system groups by that metadata value and reports the mean of classifiable seven-factor scores, the total/classifiable/unresolved record counts, and the same configured overall band for the mean. Rows with empty station identifiers are counted as ungrouped; unresolved records are counted but excluded from the mean. This describes the held-out observations grouped by station. The thesis PDF does not define this aggregation, and the result is not a time-specific station condition or validated operational classification.
+
 ## Variation safeguard
 
 A numerical factor cannot receive a score if it is constant/effectively constant or Q1/Q2/Q3 all collapse. A configured direction cannot bypass this check. Values and quartiles are tested separately using range <= 1e-12 + 1e-9 * maximum absolute magnitude. These are documented numerical-resolution tolerances, not minimum scientifically important differences. Partial quartile ties are allowed; unoccupied severity bins are not manufactured.

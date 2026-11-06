@@ -1,4 +1,5 @@
-﻿import type { Experiment, Row } from '../types'
+import { Activity, BusFront, CarFront, Clock3, Cloud, CloudRain, Gauge, Route, UsersRound } from 'lucide-react'
+import type { Experiment, Row } from '../types'
 import { CATEGORICAL, LABELS, PREDICTORS } from '../types'
 import { format } from './Common'
 
@@ -63,6 +64,13 @@ export function StationCondition({s, row, summaryOnly = false}: {s: Experiment; 
   const label = score == null ? DECISION : String(row['Overall Station Classification'])
   const band = score == null ? -1 : LABELS.indexOf(label)
   const scores = FACTORS.map(f => severityScore(row[`${f} Severity`]))
+  const signals: {factor: string; score: number; value: Row[string]}[] = FACTORS.flatMap((factor, index) => {
+    const severity = scores[index]
+    return severity !== null && severity >= 2
+      ? [{factor, score: severity, value: row[factor === 'Predicted Waiting Time' ? 'Enhanced Predicted Waiting Time' : factor]}]
+      : []
+  }).sort((a, b) => b.score - a.score).slice(0, 3)
+  const isRain = /rain|storm|shower|precip/i.test(String(row['Weather Condition'] ?? ''))
   const bounds = [0, ...s.config.station_thresholds, 3]
   const waitBounds = s.config.wait_thresholds
   const waitRanges = [`≤ ${format(waitBounds[0])}`, `> ${format(waitBounds[0])} to ≤ ${format(waitBounds[1])}`, `> ${format(waitBounds[1])} to ≤ ${format(waitBounds[2])}`, `> ${format(waitBounds[2])}`]
@@ -74,6 +82,23 @@ export function StationCondition({s, row, summaryOnly = false}: {s: Experiment; 
   if (summaryOnly) return <section className={`station-brief station-band-${band}`} aria-label="Station Condition">
     <h3>Station Condition</h3>
     <div className="station-condition"><strong className={score == null ? 'unresolved-condition' : 'condition-label'}>{label}</strong></div>
+    {signals.length > 0 && <div className="condition-signals">
+      <div className="signals-heading"><strong>Higher-threshold factors</strong><span>Classification inputs, not proven causes</span></div>
+      <ul>{signals.map(({factor, score: factorScore, value}) => {
+        const Icon = factor === 'Weather Condition' ? (isRain ? CloudRain : Cloud)
+          : factor === 'Passenger Volume' ? UsersRound
+          : factor === 'Traffic Condition' ? CarFront
+          : factor === 'Route Distance' ? Route
+          : factor === 'Vehicle Frequency' ? BusFront
+          : factor === 'Time of Day' ? Clock3
+          : factor === 'Predicted Waiting Time' ? Gauge
+          : Activity
+        return <li key={factor}>
+          <span className={`signal-icon${factor === 'Weather Condition' && isRain ? ' rainy' : ''}`}><Icon size={16} aria-hidden="true"/>{factor === 'Weather Condition' && isRain && <span className="signal-rainfall" aria-hidden="true"><i/><i/></span>}</span>
+          <span className="signal-copy"><strong>{factor === 'Predicted Waiting Time' ? 'Predicted wait' : factor}</strong><small>{SEVERITIES[factorScore]} · {format(value, factor === 'Passenger Volume' ? 0 : 2)}{unit(factor) ? ` ${unit(factor)}` : ''}</small></span>
+        </li>
+      })}</ul>
+    </div>}
     <p className="sr-only" role="status">Observation {String(row['Record ID'])}: {label}.</p>
   </section>
 

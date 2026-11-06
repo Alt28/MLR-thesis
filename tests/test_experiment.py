@@ -5,6 +5,8 @@ import pytest
 from src.config import ResearchConfig, TARGET
 from src.experiment import prepare_experiment, run_experiment
 from src.export import export_experiment, spreadsheet_safe
+from src.evaluation import metrics
+from src.station_classification import aggregate_station_scores
 
 
 def test_complete_export(tmp_path, fixture_data):
@@ -56,6 +58,46 @@ def test_test_set_perturbation_cannot_change_training_artifacts(fixture_data):
     pd.testing.assert_frame_equal(first.classifier.thresholds, second.classifier.thresholds)
     pd.testing.assert_frame_equal(first.classifier.evidence, second.classifier.evidence)
     assert first.models.features.categories == second.models.features.categories
+
+
+def test_mode_metrics_and_station_summary_use_only_test_predictions(fixture_data):
+    data = fixture_data.copy()
+    data["Transport Mode"] = ["Bus", "Train"] * (len(data) // 2)
+    data["Station ID"] = ["ST-01", "ST-02"] * (len(data) // 2)
+    result = run_experiment(prepare_experiment(data, ResearchConfig()))
+    assert set(result.mode_metrics["Transport Mode"]) == {"Bus", "Train"}
+    assert result.mode_metrics.groupby("Transport Mode")["Test Rows"].nunique().eq(1).all()
+    assert result.mode_metrics.groupby("Transport Mode").size().eq(2).all()
+    assert result.station_aggregation["available"]
+    assert result.station_aggregation["station_count"] == 2
+    assert result.station_summary["Test Records"].sum() == len(result.prepared.test)
+    assert result.station_summary["Classifiable Records"].sum() == 0
+    assert result.station_summary["Unresolved Records"].sum() == len(result.prepared.test)
+    test_modes = result.prepared.test["Transport Mode"].str.lower()
+    for mode in ("Bus", "Train"):
+        selected = test_modes.eq(mode.lower())
+        actual = result.prepared.test.loc[selected, TARGET]
+        for prefix, model in (("Baseline", "Baseline MLR"), ("Enhanced", "Enhanced MLR")):
+            row = result.mode_metrics[
+                result.mode_metrics["Transport Mode"].eq(mode)
+                & result.mode_metrics["Model"].eq(model)
+            ].iloc[0]
+            expected = metrics(actual, result.predictions.loc[selected, f"{prefix} Predicted Waiting Time"])
+            assert row["MSE"] == pytest.approx(expected["MSE"])
+            assert row["RMSE"] == pytest.approx(expected["RMSE"])
+
+
+def test_station_aggregation_averages_classifiable_scores_and_counts_unresolved():
+    predictions = pd.DataFrame({
+        "Station": ["A", "A", "A", None],
+        "Multi-Factor Station Score": [0.0, 2.0, np.nan, 3.0],
+    })
+    summary, metadata = aggregate_station_scores(predictions)
+    assert metadata["available"] and metadata["ungrouped_records"] == 1
+    assert summary.loc[0, "Mean Multi-Factor Station Score"] == pytest.approx(1.0)
+    assert summary.loc[0, "Classifiable Records"] == 2
+    assert summary.loc[0, "Unresolved Records"] == 1
+    assert summary.loc[0, "Overall Station Classification"] == "Minor Delay"
 
 
 def test_corrections_shared_by_models_but_test_unchanged(fixture_data):
