@@ -13,6 +13,11 @@ class CloudImportRequest(BaseModel):
     url: str = Field(min_length=1, max_length=4096)
 
 
+class AuthenticationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    password: str = Field(min_length=1, max_length=4096)
+
+
 class ConfigRequest(RevisionRequest):
     config: dict
     approve_interactions: bool = False

@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ArrowRight, Database, Download, Info, X } from 'lucide-react'
 import type { Experiment } from '../types'
-import { figureUrl } from '../services/api'
+import { api, downloadFile, figureUrl } from '../services/api'
 
 export const format = (value: unknown, digits = 3) => value == null ? '—' : typeof value === 'number' ? value.toLocaleString(undefined, {maximumFractionDigits: digits}) : typeof value === 'boolean' ? value ? 'Yes' : 'No' : String(value)
 export function Badge({ children, tone = 'neutral' }: {children: ReactNode; tone?: string}) { return <span className={`badge ${tone}`}>{children}</span> }
@@ -15,9 +15,33 @@ export function Empty({title = 'Start with a recorded dataset', text = 'Import a
 }
 export function NeedData({onImport}: {onImport: () => void}) {return <Panel><Empty action={<button className="button primary" onClick={onImport}>Import dataset <ArrowRight size={16}/></button>}/></Panel>}
 export function Metric({label, value, detail, accent = false, icon}: {label: string; value: unknown; detail?: string; accent?: boolean; icon?: ReactNode}) {return <div className={`metric ${accent ? 'accent' : ''}`}><div className="metric-label"><span>{label}</span>{icon}</div><strong>{format(value)}</strong><small>{detail}</small></div>}
+export function DownloadFile({href, filename, className = '', children, label}: {href: string; filename: string; className?: string; children: ReactNode; label?: string}) {
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const download = async () => {
+    setLoading(true); setError('')
+    try { await downloadFile(href, filename) }
+    catch (e) { setError(e instanceof Error ? e.message : 'The file could not be downloaded.') }
+    finally { setLoading(false) }
+  }
+  return <span className="download-control"><button type="button" className={className} aria-label={label} disabled={loading} onClick={() => void download()}>{children}</button>{error && <span className="inline-error" role="alert">{error}</span>}</span>
+}
 export function Chart({s, name, title}: {s: Experiment; name: string; title: string}) {
-  return <Panel title={title} action={s.figures.includes(name) && <a className="icon-button" href={figureUrl(s, name)} download={`${name}.png`} aria-label={`Download ${title}`}><Download size={16}/></a>}>
-    {s.figures.includes(name) ? <img className="research-chart" src={figureUrl(s, name, true)} alt={title}/> : <Empty compact title="No chart yet" text="Train both models to generate this figure from held-out observations."/>}
+  const [image, setImage] = useState('')
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let active = true
+    let url = ''
+    setImage(''); setError('')
+    if (s.figures.includes(name)) api.file(figureUrl(s, name, true)).then(blob => {
+      if (!active) return
+      url = URL.createObjectURL(blob)
+      setImage(url)
+    }).catch(e => {if (active) setError(e instanceof Error ? e.message : 'The figure could not be loaded.')})
+    return () => {active = false; if (url) URL.revokeObjectURL(url)}
+  }, [s.id, s.revision, name, s.figures])
+  return <Panel title={title} action={s.figures.includes(name) && <DownloadFile className="icon-button" href={figureUrl(s, name)} filename={`${name}.png`} label={`Download ${title}`}><Download size={16}/></DownloadFile>}>
+    {s.figures.includes(name) ? image ? <img className="research-chart" src={image} alt={title}/> : error ? <p className="inline-error" role="alert">{error}</p> : <p className="muted" role="status">Loading figure…</p> : <Empty compact title="No chart yet" text="Train both models to generate this figure from held-out observations."/>}
   </Panel>
 }
 export function Modal({title, children, close, className = '', canClose = true}: {title: string; children: ReactNode; close: () => void; className?: string; canClose?: boolean}) {

@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://alt28-mlr-thesis-api.onrender.com/api/:path*"
+    }
+  ]
+}

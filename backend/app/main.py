@@ -1,5 +1,7 @@
 """Local API and compiled React application. No external service is required."""
 from contextlib import asynccontextmanager
+import hmac
+import os
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, FileResponse
@@ -12,6 +14,8 @@ from .api.routes import router
 def create_app(storage_root=None):
     @asynccontextmanager
     async def lifespan(app):
+        if os.environ.get("MLR_REQUIRE_AUTH", "").lower() == "true" and not os.environ.get("MLR_APP_PASSWORD"):
+            raise RuntimeError("Set MLR_APP_PASSWORD before starting the protected deployment.")
         app.state.store = ExperimentStore(storage_root or STORAGE_ROOT)
         yield
         app.state.store.close()
@@ -20,13 +24,26 @@ def create_app(storage_root=None):
 
     @app.middleware("http")
     async def local_origin_guard(request: Request, call_next):
-        # Same-origin web UI; the Vite development proxy also preserves the local host.
+        password_required = os.environ.get("MLR_REQUIRE_AUTH", "").lower() == "true"
+        expected_password = os.environ.get("MLR_APP_PASSWORD", "")
+        supplied_password = request.headers.get("x-mlr-password", "")
+        auth_route = request.url.path == "/api/auth"
+        public_route = request.url.path == "/api/health" or auth_route
+
+        if request.url.path.startswith("/api/") and not public_route and password_required:
+            if not expected_password:
+                return JSONResponse({"detail": "Protected API is not configured."}, status_code=503)
+            if not hmac.compare_digest(supplied_password.encode("utf-8"), expected_password.encode("utf-8")):
+                return JSONResponse({"detail": "Enter the workspace password to continue."}, status_code=401)
+
         origin = request.headers.get("origin")
-        if request.method not in ("GET", "HEAD", "OPTIONS") and origin:
+        if request.method not in ("GET", "HEAD", "OPTIONS") and origin and not auth_route:
             from urllib.parse import urlsplit
             origin_host = urlsplit(origin).hostname
             request_host = request.url.hostname
             allowed = origin_host == request_host or (origin_host in ("localhost", "127.0.0.1") and request_host in ("localhost", "127.0.0.1"))
+            if password_required and expected_password and hmac.compare_digest(supplied_password.encode("utf-8"), expected_password.encode("utf-8")):
+                allowed = True
             if not allowed: return JSONResponse({"detail": "Use the local application's browser address."}, status_code=403)
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
