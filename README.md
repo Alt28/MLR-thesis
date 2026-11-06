@@ -53,7 +53,7 @@ Explicit units in a workbook's **Sources_Methodology** sheet (Variable and Unit 
 
 **Import Dataset > Analyze > View Result**
 
-For Bus/Train views, provide a **Transport Mode** column containing **Bus** or **Train**. For a single-mode file without this column, use **Set transport mode** beside the dataset, save, and analyze again. Missing labels stay unspecified; no records are invented for an absent service. Mode filters preserve the existing model; RMSE covers the complete test set.
+For mode-specific evaluation, provide a **Transport Mode** column containing **Bus** or **Train**. For a single-mode file without this column, use **Set transport mode** beside the dataset, save, and analyze again. Missing labels stay unspecified. The system reports pooled metrics and additional bus/train metrics on the matching subsets of the same test predictions; it still fits one pooled model.
 
 1. Choose or drop a CSV/XLSX dataset. Templates are available beside the upload control. Validation shows the file name, observation count, **7/7 required variables detected**, and three preview rows. **View Full Dataset** opens the searchable dataset.
 2. Click **Analyze Dataset**. An unapproved interaction specification requires an explicit researcher confirmation once. **View configured interaction terms** reveals that specification; **Advanced Settings** allows editing it. Existing approvals are reused when valid.
@@ -63,13 +63,15 @@ For Bus/Train views, provide a **Transport Mode** column containing **Bus** or *
 6. Undefined classifications remain **Requires Researcher Decision**. View Details identifies missing definitions or insufficient variation. Provide justified rules/units through **Advanced Settings**, or import appropriate varied recorded data for constant factors, then analyze again. The interface never invents a classification to fill the summary.
 7. **Export Results** remains beside View Details and offers the Excel workbook, CSV tables, and complete reproducibility ZIP. The dark palette, compact typography, navigation, and backend methodology are preserved.
 
+After both models finish, **View Details > Predict new observations** accepts a separate CSV/XLSX with all six predictors and no Actual Waiting Time. It uses the fitted models and provides downloadable predictions, without changing evaluation metrics or retraining. A `Station ID` or `Station` column also enables descriptive station summaries: mean score over classifiable rows plus unresolved counts.
+
 The first two configured interactions are thesis examples and require explicit approval. Settings changes clear the current results; rerun the analysis afterward. Already reviewed flags and an approved specification are reused when still valid. Changing the split or IQR screening can reset review decisions. Source data remains unchanged, and the held-out observations are not corrected or excluded through the review interface.
 
 Each upload is saved separately under `.web-data/`. The last selected dataset is restored across browser refreshes and server restarts. Previous research files remain on disk; the simplified interface has no experiment-management or history page. Export results before replacing a dataset when you want an easily accessible copy. Conflicting writes from another tab are rejected. Stop the server before backing up `.web-data/`.
 
 The UI calls the additive model **Traditional MLR**. Existing research files use **Baseline MLR**, and their **Pending configuration** label corresponds to **Requires Researcher Decision**. Old saved exports remain intact; rerun older analyses to include the newly added selected-interaction table in their workbook/CSV bundle.
 
-The [revision review](docs/SIMPLIFICATION_REVIEW.md) records the original pages, merged components, preserved logic, thesis comparison, and unresolved methodology. The baseline-review design and unspecified classification definitions require researcher decisions before making corresponding thesis claims.
+The [revision review](docs/SIMPLIFICATION_REVIEW.md) records the original pages, merged components, preserved logic, thesis comparison, and unresolved methodology. The baseline-review design and classification rules not explicitly specified in the PDF require researcher/adviser review before making corresponding thesis claims.
 
 ## Dataset contract
 
@@ -79,15 +81,15 @@ The [revision review](docs/SIMPLIFICATION_REVIEW.md) records the original pages,
 | Weather Condition | Category | Observed weather category |
 | Passenger Volume | Nonnegative number | Number of passengers in a defined observation window |
 | Route Distance | Nonnegative number | Distance in a consistent unit, documented in config |
-| Vehicle Frequency | Nonnegative number | Vehicles per defined time window, or a clearly defined available-vehicle count |
+| Vehicle Frequency | Nonnegative number | Observed service frequency in vehicles/hour under the revised collection definition; verify and declare the actual input unit |
 | Time of Day | Category | Defined observation period |
 | Actual Waiting Time | Nonnegative number | Observed waiting time in **minutes** |
 
-Do not enter headway in minutes as Vehicle Frequency: these are different measurements. Automatic severity direction follows the reviewed-training relationship; configured directions are preserved. The thesis table describes available-vehicle counts, so settle this definition with your adviser before collecting data. Categories, observation windows, measurement units, and the definition of an actual waiting-time observation must be documented in your collection protocol.
+Do not enter headway in minutes as Vehicle Frequency: these are different measurements. The original thesis Table 3.1 says "number of available vehicles," while the selected system protocol uses observed service frequency in vehicles/hour. This amendment must be reconciled with the adviser-approved thesis. The application does not infer or convert units; verify and declare them for each dataset. Automatic severity direction follows the reviewed-training relationship; configured directions are preserved.
 
 Missing/invalid required data is rejected with an explanation. The program does not impute or create observations. At least 10 rows are required to create a usable split; this is a software minimum, not a justified thesis sample size. Substantially more observations are needed to estimate multiple coefficients reliably.
 
-Optional metadata such as `Record ID`, station name, or transport mode is preserved for identification and export, **never used as extra predictors**. Supplied Record IDs must be unique and nonempty. If the column is absent, the app generates stable row-position IDs. Keep the source file and its row order unchanged when reusing review decisions. For distinct bus and train analyses, import separate datasets and produce separate experiment bundles. Pooling the two modes requires a research justification; the app does not invent mode-specific models or aggregate observation labels into station-wide conclusions.
+Optional metadata such as `Record ID`, `Station ID` (or `Station`), or `Transport Mode` is preserved, **never used as extra predictors**. Station identifiers enable a mean-score summary over classifiable held-out observations; unresolved rows are counted, not assigned scores. This is a descriptive summary for the test period, not a real-time or independently validated station condition. Supplied Record IDs must be unique and nonempty. If absent, the app generates row-position IDs. Keep the source file and its row order unchanged when reusing review decisions. Bus/train metrics are subsets of the same pooled model, not separate mode-specific fits.
 
 ## Configuring the experiment
 
@@ -99,6 +101,7 @@ Research defaults are in `src/config.py`. The web forms save per-experiment snap
 - Category dictionaries are explicit overrides. Without an override, each category mean Actual Waiting Time is compared with reviewed-training Actual Waiting Time Q1/Q2/Q3 to generate a score. The learned mapping, mean, thresholds, source, and status are saved separately from configuration. Unseen test categories remain unresolved unless explicitly configured.
 - New numerical directions default to `None` (automatic). The sign of reviewed-training Pearson correlation with Actual Waiting Time determines higher/lower severity. A zero or unavailable relationship remains unresolved; explicit configured directions take precedence. A negative Vehicle Frequency relationship produces reverse scoring. Existing saved directions are preserved, not silently replaced.
 - Vehicle Frequency unit starts empty and must be defined before final station labels are issued.
+- Include optional `Station ID` (or `Station`) metadata for station-level summaries. The generated transportation template includes `Station ID`.
 - Waiting-time thresholds and combined-score thresholds are explicit and configurable.
 
 For a frozen or shared run, `main.py run` accepts an exported `config.json` via `--config`. That snapshot overrides the Python defaults for that run; it does not modify `config.py`.

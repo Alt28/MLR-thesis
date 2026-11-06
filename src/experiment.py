@@ -8,9 +8,10 @@ from .config import TARGET, ROW_ID
 from .data_loader import load_dataset, validate_data, split_dataset
 from .irregularity_detection import fit_iqr, flag_irregularities, apply_reviews
 from .mlr_model import MLRModels
-from .evaluation import compare_models
-from .station_classification import StationClassifier
+from .evaluation import compare_models, metrics
+from .station_classification import StationClassifier, aggregate_station_scores
 from .research_protocol import source_declarations, controlled_comparison
+from .transport_metadata import transport_labels
 
 
 @dataclass
@@ -39,6 +40,9 @@ class ExperimentResult:
     conclusion: str
     warnings: list
     study: dict = field(default_factory=dict)
+    mode_metrics: pd.DataFrame = field(default_factory=pd.DataFrame)
+    station_summary: pd.DataFrame = field(default_factory=pd.DataFrame)
+    station_aggregation: dict = field(default_factory=dict)
 
 
 def prepare_experiment(source, config):
@@ -69,6 +73,20 @@ def run_experiment(prepared, decisions=None, fitted_models=None):
     originals = originals.rename(columns={c: f"Source metadata: {c}" for c in originals.columns if c in predictions or c in classified})
     output = pd.concat([originals, predictions, classified], axis=1)
     evaluation, comparison, conclusion = compare_models(prepared.test[TARGET], predictions)
+    transport_modes, _ = transport_labels(prepared.test, config)
+    mode_rows = []
+    for mode in ("bus", "train"):
+        selected = transport_modes.eq(mode)
+        if not selected.any():
+            continue
+        for label, prefix in (("Baseline MLR", "Baseline"), ("Enhanced MLR", "Enhanced")):
+            mode_rows.append({
+                "Transport Mode": mode.title(), "Model": label, "Test Rows": int(selected.sum()),
+                **metrics(prepared.test.loc[selected, TARGET],
+                          predictions.loc[selected, f"{prefix} Predicted Waiting Time"]),
+            })
+    mode_metrics = pd.DataFrame(mode_rows, columns=["Transport Mode", "Model", "Test Rows", "MSE", "RMSE"])
+    station_summary, station_aggregation = aggregate_station_scores(output, config.station_thresholds)
     warnings = list(models.warnings)
     unreviewed = int(audit.Action.eq("retain_unreviewed").sum())
     if unreviewed:
@@ -94,4 +112,5 @@ def run_experiment(prepared, decisions=None, fitted_models=None):
     if not study["metadata"]["review_changed_training_data"]:
         warnings.append("IQR review did not change training data; no benefit from correction/exclusion is demonstrated by this run.")
     warnings.append(f"Evaluation uses one fixed holdout of {len(prepared.test)} observations. Do not infer statistical significance or real-world validity from this run alone.")
-    return ExperimentResult(prepared, train, audit, models, classifier, output, evaluation, comparison, conclusion, warnings, study)
+    return ExperimentResult(prepared, train, audit, models, classifier, output, evaluation, comparison,
+                            conclusion, warnings, study, mode_metrics, station_summary, station_aggregation)

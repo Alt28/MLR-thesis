@@ -29,6 +29,7 @@ def wait_for_job(web, sid):
 def test_validation_and_templates(web, fixture_data):
     assert web.get("/api/health").json()["application"] == "transit-lab"
     assert web.get("/api/templates/xlsx").status_code == 200
+    assert "Station ID" in web.get("/api/templates/csv").text
     bad = web.post("/api/experiments", files={"file": ("bad.csv", b"wrong\n123", "text/csv")})
     assert bad.status_code == 400 and "Missing required" in bad.text
     assert web.get("/api/not-a-real-route").status_code == 404
@@ -55,6 +56,7 @@ def test_deployment_allows_configured_frontend_origin(monkeypatch, tmp_path):
 def test_complete_web_workflow(web, fixture_data):
     labeled = fixture_data.copy()
     labeled['Transport Mode'] = ['Bus', 'Train'] * (len(labeled) // 2)
+    labeled['Station ID'] = ['ST-01', 'ST-02'] * (len(labeled) // 2)
     s = upload(web, labeled)
     base = f"/api/experiments/{s['id']}"
     assert s["metrics"] == [] and s["approved"] is False
@@ -75,6 +77,12 @@ def test_complete_web_workflow(web, fixture_data):
     s = wait_for_job(web, s["id"])
     assert s["status"] == "complete", s.get("error")
     assert len(s["metrics"]) == 2 and len(s["figures"]) == 8
+    assert len(s["mode_metrics"]) == 4
+    assert s["station_aggregation"]["available"] and s["station_aggregation"]["station_count"] == 2
+    station_rows = web.get(base + "/tables/station_summary").json()
+    assert station_rows["total"] == 2
+    assert sum(row["Test Records"] for row in station_rows["rows"]) == s["test"]
+    assert web.get(base + "/download/csv?table=mode_metrics").status_code == 200
     assert s["study_available"] and len(s["study_metrics"]) == 3
     bus = web.get(base + "/tables/predictions?transport_mode=bus").json()
     train = web.get(base + "/tables/predictions?transport_mode=train").json()
@@ -103,6 +111,17 @@ def test_complete_web_workflow(web, fixture_data):
     assert min(Image.open(BytesIO(light_figure.content)).getpixel((0, 0))[:3]) > 240
     assert web.get(base + "/download/csv?table=../../metadata").status_code == 404
     assert web.get(base + "/tables/classification").json()["total"] == 16
+    target_free = labeled.drop(columns=["Actual Waiting Time"]).to_csv(index=False).encode()
+    forecast = web.post(base + "/predict", files={"file": ("future.csv", target_free, "text/csv")})
+    assert forecast.status_code == 200, forecast.text
+    assert len(forecast.json()["rows"]) == len(labeled)
+    assert "Enhanced Predicted Waiting Time" in forecast.json()["columns"]
+    assert forecast.json()["station_aggregation"]["station_count"] == 2
+    assert "Actual Waiting Time" not in forecast.json()["columns"]
+    labeled_prediction = web.post(base + "/predict", files={"file": ("labeled.csv", labeled.to_csv(index=False).encode(), "text/csv")})
+    assert labeled_prediction.status_code == 400 and "must omit" in labeled_prediction.text
+    invalid_prediction = web.post(base + "/predict", files={"file": ("bad.csv", b"invalid\nvalue", "text/csv")})
+    assert invalid_prediction.status_code == 400 and "Missing required" in invalid_prediction.text
     # Reload server-created state: persisted models/results retain their exact revision.
     web.app.state.store.sessions.clear()
     restored = web.get(base).json()

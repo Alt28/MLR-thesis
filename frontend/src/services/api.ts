@@ -1,4 +1,4 @@
-import type { Experiment, ExperimentListItem, ResearchConfig, Row, TableResult, TransportMode } from '../types'
+import type { Experiment, ExperimentListItem, PredictionOutput, ResearchConfig, Row, TableResult, TransportMode } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
@@ -49,6 +49,11 @@ export const api = {
   review: (s: Experiment, record_id: string, action: string, reason: string, corrections: Record<string, string | number>) => request<Experiment>(`/experiments/${s.id}/reviews`, json('PUT', { revision: s.revision, record_id, action, reason, corrections })),
   train: (s: Experiment, selection: string) => request(`/experiments/${s.id}/train`, json('POST', { revision: s.revision, selection })),
   analyze: (s: Experiment, approve: boolean, retain: boolean, reason: string) => request(`/experiments/${s.id}/analyze`, json('POST', {revision: s.revision, approve_interactions: approve, retain_remaining: retain, retain_reason: reason})),
+  predict: (s: Experiment, file: File) => {
+    const data = new FormData()
+    data.append('file', file)
+    return request<PredictionOutput>(`/experiments/${s.id}/predict`, {method: 'POST', body: data})
+  },
   table: (id: string, name: string, search = '', offset = 0, limit = 25, transport_mode: TransportMode = 'all') => request<TableResult>(`/experiments/${id}/tables/${name}?${new URLSearchParams({search, transport_mode, offset: String(offset), limit: String(limit)})}`),
   record: (id: string, rid: string) => request<{ original: Row; decision: {action: string; reason: string; corrections: Row} | null; flagged: boolean }>(`/experiments/${id}/records/${encodeURIComponent(rid)}`),
 }

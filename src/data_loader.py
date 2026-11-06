@@ -1,5 +1,6 @@
 """Read recorded observations, validate the schema, and split before learning."""
 from pathlib import Path
+from io import BytesIO
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -42,13 +43,27 @@ def validate_data(frame, require_target=True):
 
 def load_dataset(path):
     path = Path(path)
+    text_columns = {ROW_ID: str, "Station ID": str, "Station": str}
     if path.suffix.lower() == ".csv":
-        data = pd.read_csv(path, dtype={ROW_ID: str}, keep_default_na=False)
+        data = pd.read_csv(path, dtype=text_columns, keep_default_na=False)
     elif path.suffix.lower() == ".xlsx":
-        data = pd.read_excel(path, dtype={ROW_ID: str}, keep_default_na=False)
+        data = pd.read_excel(path, dtype=text_columns, keep_default_na=False)
     else:
         raise ValueError("Use a CSV or .xlsx Excel file.")
     return validate_data(data)
+
+
+def load_dataset_bytes(name, content, require_target=False):
+    suffix = Path(name).suffix.lower()
+    stream = BytesIO(content)
+    text_columns = {ROW_ID: str, "Station ID": str, "Station": str}
+    if suffix == ".csv":
+        data = pd.read_csv(stream, dtype=text_columns, keep_default_na=False)
+    elif suffix == ".xlsx":
+        data = pd.read_excel(stream, dtype=text_columns, keep_default_na=False)
+    else:
+        raise ValueError("Use a CSV or .xlsx Excel file.")
+    return validate_data(data, require_target=require_target)
 
 
 def split_dataset(data, config):
@@ -64,7 +79,7 @@ def split_dataset(data, config):
 def write_templates(directory):
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    frame = pd.DataFrame(columns=PREDICTORS + (TARGET,))
+    frame = pd.DataFrame(columns=PREDICTORS + (TARGET, "Station ID"))
     for suffix in ("csv", "xlsx"):
         path = directory / f"transportation_template.{suffix}"
         if not path.exists():

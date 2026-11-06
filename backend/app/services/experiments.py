@@ -10,9 +10,10 @@ import joblib
 import pandas as pd
 from fastapi import HTTPException
 from src.config import ResearchConfig, ROW_ID, PREDICTORS, TARGET
+from src.data_loader import load_dataset_bytes
 from src.experiment import prepare_experiment, run_experiment
 from src.irregularity_detection import apply_reviews, review_fingerprint
-from src.station_classification import StationClassifier, CLASSIFICATION_VERSION
+from src.station_classification import StationClassifier, CLASSIFICATION_VERSION, aggregate_station_scores
 from src.mlr_model import MLRModels
 from src.evaluation import metrics
 from src.transport_metadata import transport_labels, transport_summary
@@ -173,6 +174,12 @@ class ExperimentStore:
                     transport=transport_summary(p), provenance=getattr(p, "provenance", {}), study_available=bool(study),
                     study_metrics=records(study["metrics"]) if study else [],
                     study_comparisons=records(study["comparisons"]) if study else [],
+                    mode_metrics=records(combined.mode_metrics) if combined is not None else [],
+                    station_aggregation=combined.station_aggregation if combined is not None else {
+                        "available": False, "grouping_column": "Station ID",
+                        "reason": "Station summaries are available after both models finish.",
+                        "station_count": 0, "ungrouped_records": len(p.test),
+                    },
                     research_protocol=study.get("metadata", {}),
                     export_ready=export is not None and export.exists() and not classification_stale)
 
@@ -211,6 +218,35 @@ class ExperimentStore:
         p = s["prepared"]
         if record_id not in p.original.index: raise HTTPException(404, "Record not found.")
         return {"original": records(p.original.loc[[record_id]])[0], "decision": s["decisions"].get(record_id), "flagged": record_id in set(p.flags[ROW_ID])}
+
+    def predict(self, sid, name, content):
+        with self.lock:
+            s = self.get(sid)
+            if s["status"] != "complete" or s["result"] is None:
+                raise HTTPException(409, "Complete both model fits before predicting new observations.")
+            if getattr(s["result"].classifier, "method_version", 1) != CLASSIFICATION_VERSION:
+                raise HTTPException(409, "Re-run the analysis to update the saved classification rules before predicting.")
+            data = load_dataset_bytes(name, content, require_target=False)
+            if TARGET in data.columns:
+                raise ValueError(f"Prediction-only files must omit {TARGET}; use the evaluation dataset workflow for labeled observations.")
+            predictions = s["result"].models.predict(data)
+            classified = s["result"].classifier.classify(
+                data, predictions["Enhanced Predicted Waiting Time"])
+            originals = data.copy()
+            originals = originals.rename(columns={
+                column: f"Source metadata: {column}"
+                for column in originals.columns
+                if column in predictions.columns or column in classified.columns
+            })
+            output = pd.concat([originals, predictions, classified], axis=1)
+            station_summary, station_aggregation = aggregate_station_scores(
+                output, s["prepared"].config.station_thresholds)
+            return {
+                "columns": list(output.columns), "rows": records(output),
+                "station_summary": records(station_summary),
+                "station_aggregation": station_aggregation,
+                "experiment_id": s["id"], "model_revision": s["revision"],
+            }
 
     def analyze(self, sid, request):
         """Confirm explicit research choices, then run the existing two-model workflow."""

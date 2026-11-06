@@ -47,4 +47,4 @@ The 500-row workbook explicitly declares vehicles/hour and km, so no numeric con
 - `data/recorded_observation_template.xlsx` is the empty collection workbook, with definitions and audit metadata. It contains no invented observations.
 - `src/measurements.py` provides explicit count/window and scheduled-headway conversion helpers. These are preparation utilities, not silent model transformations.
 
-This wording resolves the unit inconsistency but still needs to be adopted in the final research protocol and reviewed with the adviser before collecting/evaluating final data.
+The system's selected definition is observed service frequency in vehicles/hour, but the original thesis PDF still says "number of available vehicles." This amendment remains proposed wording and should be reconciled with the adviser-approved thesis before final data collection. The application does not assume CSV values use vehicles/hour, convert units silently, or make an undocumented unit declaration; verify and declare each dataset's units.

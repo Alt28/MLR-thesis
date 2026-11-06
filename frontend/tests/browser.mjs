@@ -241,10 +241,19 @@ try {
   assert.equal(await page.locator('.classification-details').count(),0)
   assert.equal(await page.locator('.advanced-research').getAttribute('open'),null)
   assert.equal(await page.getByRole('table',{name:'coefficients',exact:true}).count(),0)
-  assert.deepEqual(await page.locator('.research-details>section').evaluateAll(nodes=>nodes.map(n=>n.querySelector('h3').textContent)),['Summary','Model Performance','Prediction Details'])
+  assert.deepEqual(await page.locator('.research-details>section').evaluateAll(nodes=>nodes.map(n=>n.querySelector('h3').textContent)),['Summary','Model Performance','Predict new observations','Prediction Details'])
   assert.ok((await page.locator('.metric-explanations').innerText()).includes('not a confidence percentage'))
   assert.equal(state.study_available,true)
   assert.equal(state.study_metrics.length,3)
+  assert.equal(state.mode_metrics.length,4)
+  assert.equal(state.station_aggregation.available,true)
+  const futureColumns=cols.filter(name=>name!=='Actual Waiting Time')
+  const futureCsv=[futureColumns.join(','),...csv.split('\n').slice(1).map(line=>line.split(',').filter((_,index)=>cols[index]!=='Actual Waiting Time').join(','))].join('\n')
+  const futureFile=path.join(temporary,'future_predictors_ARTIFICIAL_TEST.csv')
+  await writeFile(futureFile,futureCsv)
+  await page.locator('.prediction-only input[type=file]').setInputFiles(futureFile)
+  await page.getByText(/80 predictions generated with model revision/).waitFor()
+  assert.match(await page.locator('.prediction-only').innerText(),/station summaries/)
   assert.equal(await page.locator('.controlled-comparisons').getAttribute('open'),null)
   await page.getByText('Separate data review and interaction effects',{exact:true}).click()
   await page.getByRole('table',{name:'Controlled experiment metrics'}).locator('tbody tr').first().waitFor()
@@ -495,7 +504,7 @@ try {
   }
   await close()
   assert.deepEqual(errors,[],'No JavaScript exceptions')
-  console.log('PASS: two-page navigation; CSV/XLSX validation; explicit interactions; IQR retain/correct/exclude; one-action training; same-test metrics; seven-factor classification; undefined mappings; full tables; selected terms export; dark charts; downloads; persistence; no-flag flow; desktop/mobile; keyboard focus. Artificial software fixtures only.')
+  console.log('PASS: two-page navigation; CSV/XLSX validation; explicit interactions; IQR retain/correct/exclude; one-action training; pooled and bus/train metrics; station summaries; target-free prediction; seven-factor classification; full tables; exports; persistence; responsive and keyboard checks. Artificial software fixtures only.')
 } catch(error) {
   if(page){await mkdir(path.join(root,'frontend/test-results'),{recursive:true});await page.screenshot({path:path.join(root,'frontend/test-results/failure.png'),fullPage:true}).catch(()=>{})}
   console.error(logs.slice(-3000));throw error

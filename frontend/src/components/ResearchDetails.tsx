@@ -16,6 +16,8 @@ const studyTables = [
   ['research_documentation','Research documentation','Source status, observation definition, and researcher rationales recorded for this run.'],
 ]
 const tables = [
+  ['mode_metrics','Bus/train model performance','Separate MSE and RMSE computed on the held-out observations for each labeled transport mode.'],
+  ['station_summary','Station-level summaries','Mean score across classifiable held-out observations per Station ID; unresolved observations are counted separately.'],
   ['coefficients','Model coefficients','Technical values showing how each variable contributes to the prediction, including the starting value (intercept).'],
   ['interaction_coefficients','Combined-factor coefficients','How combinations of variables contribute to the prediction.'],
   ['selected_interactions','Combined factors (interaction terms)','The researcher-approved combinations used by the enhanced model.'],

@@ -33,7 +33,7 @@ export function AnalysisPage({w}: {w: Workspace}) {
   const run = () => {w.setError(''); if (!s?.approved) setStep('confirm'); else reviewOrRun(false)}
   return <>
     <div className="analysis-title"><span className="eyebrow">TRANSPORTATION ANALYSIS</span><h1>Waiting-time analysis</h1><p>Explore bus and train waiting times, with station conditions explained.</p>
-      <ol className="journey-steps" aria-label="Analysis steps">{['Upload Dataset', 'Analyze', 'View Prediction', 'View Station Condition'].map((label, index) => <li key={label}><span>{index + 1}</span>{label}</li>)}</ol>
+      <ol className="journey-steps" aria-label="Analysis steps">{['Upload Dataset', 'Analyze', 'View Prediction', 'View Station Condition'].map((label, index) => <li key={label}><span>{index + 1}</span><strong>{label}</strong></li>)}</ol>
     </div>
     <div className="analysis-layout">
       <section className="analysis-input panel"><div className="section-title"><span className="section-number">01</span><h2>Transportation Dataset</h2></div>

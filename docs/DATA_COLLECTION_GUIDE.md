@@ -16,7 +16,7 @@ Agree on what one row means: for example, one observed waiting episode or a defi
 | Time of Day | Recorded time mapped using a documented, fixed period definition. |
 | Actual Waiting Time | Recorded minutes measured using the study's waiting-time definition. Synthetic target values cannot establish real-world error rates. |
 
-Useful identifying metadata: Record ID, Station, Route, Transport Mode, Observation Timestamp, Observation Period, and Source Record Reference. Extra columns are retained as metadata; they do not automatically enter the regression. Avoid unnecessary passenger-identifying information.
+Useful identifying metadata: Record ID, Station ID (or `Station`), Route, Transport Mode, Observation Timestamp, Observation Period, and Source Record Reference. Extra columns are retained as metadata; they do not automatically enter the regression. Add a consistent station identifier to obtain station summaries. Avoid unnecessary passenger-identifying information.
 
 ## Dataset checks before final evaluation
 
@@ -41,4 +41,6 @@ The newer 200-row and 500-row demo workbooks saved in the local application also
 
 Include **Transport Mode** with **Bus** or **Train** for each row. For a single-mode file without a mode column, use **Set transport mode** beside the dataset, save, and analyze again. Do not label a mixed file as a single mode. Recorded row labels take precedence; missing or unrecognized labels remain Unspecified. Route, Transit Line, and Station metadata provide output context.
 
-These controls filter held-out predictions only. The existing model remains a pooled six-predictor model, and displayed RMSE covers the complete test set. Mode-specific fitting or evaluation would require a separately justified research design.
+The regression remains one pooled model. In addition to pooled MSE/RMSE, the system reports bus and train metrics on the corresponding labeled subsets of the same held-out predictions. A single-mode researcher declaration can label a dataset without a row-level mode column; missing/unrecognized labels in a mixed dataset remain unspecified. These are subgroup metrics, not separately trained models.
+
+When `Station ID` or `Station` is present, the held-out results also include one summary per station: the mean multi-factor score among classifiable records, classifiable/unresolved record counts, and the corresponding band label. This is a descriptive average across the station's test observations, not a time-specific station condition or an independently validated classification.

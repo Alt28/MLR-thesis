@@ -207,3 +207,12 @@ Every dataset card now submits its file through normal upload validation immedia
 ## Visible bus motion and explicit playback control (6 November 2026)
 
 The loading bus now travels horizontally, with rotating DOM wheel spokes, suspension and road motion. Wheel animation was moved out of the image so all motion obeys the same playback control. Play/Pause persists per browser; absent a choice, reduced motion is respected. Explicit Play only overrides motion suppression inside this scene. Production build and full isolated browser workflow passed, including actual transform changes for the bus, road and wheels; default reduced motion; explicit opt-in; pause of all scene parts; and saved playback choice. Desktop/mobile screenshots were inspected. No research calculations or artificial loading delays were introduced.
+
+## Thesis-alignment workflow additions (6 November 2026)
+
+- Full Python suite: **124 passed**, with the existing non-failing Starlette HTTPX transport deprecation warning. The TypeScript/Vite production build and complete isolated browser workflow passed.
+- Pooled MSE/RMSE remain unchanged; additional bus/train metrics match manual calculations on the same held-out model predictions and are exported as `mode_metrics`.
+- When `Station ID` or `Station` metadata is supplied, the result/export includes mean classifiable held-out score by station, plus test, classifiable, and unresolved record counts. Missing identifiers are reported as ungrouped; unresolved records are never assigned a score.
+- After training completes, a prediction-only upload accepts predictor columns without Actual Waiting Time, returns both model predictions and the enhanced-factor classification, and does not change model fits or evaluation metrics. Labeled prediction-only uploads are rejected.
+- The downloadable transportation template now includes optional Station ID. The collection/template field does not enter model features.
+- These software additions do not alter the attached thesis PDF or establish that the revised measurement and classification choices are adviser-approved.
