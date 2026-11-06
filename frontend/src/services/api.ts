@@ -1,18 +1,10 @@
 import type { Experiment, ExperimentListItem, ResearchConfig, Row, TableResult, TransportMode } from '../types'
 
-const PASSWORD_KEY = 'mlr-workspace-password'
-
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
   const headers = new Headers(init?.headers)
-  const password = sessionStorage.getItem(PASSWORD_KEY)
-  if (password) headers.set('X-MLR-Password', password)
   try { response = await fetch('/api' + path, {...init, headers}) }
   catch { throw new Error("We can't connect to Transit Lab. Make sure the local server is running, then try again.") }
-  if (response.status === 401 && password) {
-    sessionStorage.removeItem(PASSWORD_KEY)
-    window.dispatchEvent(new Event('mlr-auth-expired'))
-  }
   if (!response.ok) {
     const body = await response.json().catch(() => ({ detail: 'The local server could not complete this request.' }))
     const message = Array.isArray(body.detail) ? body.detail.map((x: {msg: string}) => x.msg).join('; ') : body.detail
@@ -22,14 +14,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 const json = (method: string, value: unknown) => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) })
 const asset = async (path: string): Promise<Blob> => {
-  const headers = new Headers()
-  const password = sessionStorage.getItem(PASSWORD_KEY)
-  if (password) headers.set('X-MLR-Password', password)
-  const response = await fetch(path, {headers})
-  if (response.status === 401 && password) {
-    sessionStorage.removeItem(PASSWORD_KEY)
-    window.dispatchEvent(new Event('mlr-auth-expired'))
-  }
+  const response = await fetch(path)
   if (!response.ok) {
     const body = await response.json().catch(() => ({detail: 'The server could not provide this file.'}))
     throw new Error(body.detail || `Request failed (${response.status})`)
@@ -46,12 +31,6 @@ export async function downloadFile(path: string, filename: string): Promise<void
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 export const api = {
-  authStatus: () => request<{required: boolean; authenticated: boolean}>('/auth'),
-  authenticate: async (password: string) => {
-    await request<{authenticated: boolean}>('/auth', json('POST', {password}))
-    sessionStorage.setItem(PASSWORD_KEY, password)
-  },
-  clearPassword: () => sessionStorage.removeItem(PASSWORD_KEY),
   file: asset,
   list: () => request<ExperimentListItem[]>('/experiments'),
   cloudImport: (provider: 'google' | 'onedrive', url: string) => request<Experiment>('/cloud-import', json('POST', {provider, url})),
