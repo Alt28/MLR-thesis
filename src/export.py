@@ -74,6 +74,144 @@ def result_tables(result):
     return tables
 
 
+def methodology_report(result, manifest):
+    """Markdown record of the methods actually applied in this run, for the manuscript."""
+    prepared, config = result.prepared, result.prepared.config
+    classifier, study = result.classifier, getattr(result, "study", {})
+    provenance = getattr(prepared, "provenance", {})
+    rules = getattr(classifier, "rule_metadata", {})
+    protocol = study.get("metadata", {})
+    grouped = config.split_method == "grouped"
+    actions = result.audit.Action.value_counts().to_dict() if len(result.audit) else {}
+    unresolved = int(result.predictions["Overall Station Classification"].eq("Pending configuration").sum())
+    distribution = result.predictions["Overall Station Classification"].value_counts()
+
+    def block(frame):
+        return "\n```text\n" + frame.to_string(index=False) + "\n```\n"
+
+    text = [
+        "# Methodology as implemented",
+        "",
+        f"Run `{manifest['run_id']}`, generated {manifest['created_utc']}. Every value below describes this run only.",
+        "Use it to align the manuscript with the software; it is not evidence of real-world validity.",
+        "",
+        "## 1. Dataset and provenance",
+        "",
+        f"- Source: `{prepared.source}` (SHA-256 `{prepared.source_hash[:16]}…`)",
+        f"- Observations: {len(prepared.original)}; six predictors plus Actual Waiting Time in minutes.",
+        f"- Declared measurement units: Vehicle Frequency = {rules.get('measurement_units', {}).get('Vehicle Frequency') or 'undeclared'}; "
+        f"Route Distance = {rules.get('measurement_units', {}).get('Route Distance') or 'undeclared'}.",
+        f"- Source status: {provenance.get('status', 'undocumented')} — {provenance.get('message', '')}",
+    ]
+    notes = provenance.get("researcher_notes", {})
+    text += [f"- Researcher declaration — {key}: {value}" for key, value in notes.items()] if notes else [
+        "- No researcher source declaration was recorded for this run."]
+
+    text += [
+        "",
+        "## 2. Partitioning before any learning",
+        "",
+        f"- Method: {'grouped holdout' if grouped else 'random holdout'} "
+        f"({protocol.get('split_method', 'random_holdout')}), test fraction {config.test_size}, seed {config.random_state}.",
+        f"- Training observations: {len(prepared.training)} original, {len(result.training)} after review. Test observations: {len(prepared.test)}.",
+    ]
+    text.append(
+        f"- Grouping column: `{protocol.get('split_group_column')}`; every observation sharing a group stays in one partition."
+        if grouped else
+        "- Observations were assigned independently; repeated stations or trips can appear in both partitions.")
+    text += [
+        "- IQR fences, categorical encoding, severity quartiles, and category means are fitted only on training rows.",
+        "",
+        "## 3. IQR-based irregularity detection (training only)",
+        "",
+        f"- Screened variables: {', '.join(config.iqr_columns)}; multiplier {config.iqr_multiplier}.",
+        "- IQR = Q3 − Q1; Lower Bound = Q1 − 1.5·IQR; Upper Bound = Q3 + 1.5·IQR.",
+        f"- Flagged training observations: {prepared.flags[ROW_ID].nunique()}.",
+        f"- Recorded decisions: {', '.join(f'{k} = {v}' for k, v in actions.items()) or 'none'}. "
+        "`retain_unreviewed` means the observation was kept without an individual decision.",
+        "- Flagged rows are never deleted automatically, and the held-out partition is never reviewed.",
+        block(prepared.iqr_bounds.reset_index()),
+        "## 4. Model specification and estimation",
+        "",
+        "- Both models keep all six predictors as main effects and are estimated by Ordinary Least Squares with an intercept.",
+        "- Categorical predictors use training-only reference-category indicators:",
+        block(result.models.features.encoding_table()),
+    ]
+    terms = [(" × ".join(term), order) for order, group in
+             (("pairwise", config.pairwise_interactions), ("higher-order", config.higher_order_interactions))
+             for term in group]
+    text += [f"- Enhanced-model interaction terms ({len(terms)}): " +
+             ("; ".join(f"{name} ({order})" for name, order in terms) or "none selected")]
+    text += ["- Fitted design diagnostics:", block(pd.DataFrame(result.models.diagnostics))]
+
+    text += ["## 5. Experiment arms and evaluation", ""]
+    if study:
+        text += ["- " + f"Arm {arm}: {name}" for arm, name in study["metadata"]["arms"].items()]
+        text += [
+            f"- All arms are scored on the same {len(prepared.test)} test observations.",
+            block(study["metrics"]), block(study["comparisons"]),
+        ]
+    text += [
+        "- Main reported comparison (Traditional vs Enhanced MLR on reviewed training rows):",
+        block(result.metrics), block(result.comparison),
+        f"- Conclusion recorded for this run: {result.conclusion}",
+        "- Error = actual − predicted. MSE and RMSE use raw predictions, including negative values.",
+    ]
+    if len(result.mode_metrics):
+        text += ["- Bus/train metrics are subsets of the same pooled model's test predictions:",
+                 block(result.mode_metrics)]
+
+    text += [
+        "## 6. Multi-Factor Threshold-Based Station Classification",
+        "",
+        "- Seven factors: the six predictors plus the Enhanced MLR predicted waiting time; each carries weight 1/7.",
+        "- Multi-Factor Station Score = (sum of the seven severity scores) / 7, evaluated unrounded.",
+        f"- Predicted-wait severity bands (minutes): ≤ {config.wait_thresholds[0]} = 0; "
+        f"≤ {config.wait_thresholds[1]} = 1; ≤ {config.wait_thresholds[2]} = 2; above = 3.",
+        f"- Overall bands: [0, {config.station_thresholds[0]}) Normal Operation; "
+        f"[{config.station_thresholds[0]}, {config.station_thresholds[1]}) Minor Delay; "
+        f"[{config.station_thresholds[1]}, {config.station_thresholds[2]}) Moderate Delay; "
+        f"[{config.station_thresholds[2]}, 3] Severe Delay.",
+        "- Numerical factors use reviewed-training quartiles with linear interpolation. Direction comes from the "
+        "configured setting, otherwise from the sign of the training Pearson correlation with Actual Waiting Time.",
+        block(classifier.thresholds.reset_index()),
+        "- Categorical factors compare each training category mean against the reviewed-training waiting-time quartiles "
+        f"(Q1 = {classifier.target_quartiles[0]:.6g}, Q2 = {classifier.target_quartiles[1]:.6g}, Q3 = {classifier.target_quartiles[2]:.6g}); "
+        "a documented researcher mapping overrides the derived score.",
+        block(classifier.evidence),
+        "- Negative predictions keep their raw value in evaluation; only the classification input is floored at zero.",
+        f"- Label distribution across the {len(result.predictions)} test observations:",
+        block(distribution.rename("Observations").rename_axis("Overall Station Classification").reset_index()),
+        f"- Unresolved observations (Requires Researcher Decision): {unresolved}. "
+        "They stay in the denominator and their reasons are exported per observation.",
+    ]
+    aggregation = result.station_aggregation or {}
+    text.append(
+        f"- Station summary grouped by `{aggregation.get('grouping_column')}`: {aggregation.get('station_count', 0)} stations, "
+        f"{aggregation.get('ungrouped_records', 0)} test rows without an identifier. It averages classifiable scores "
+        "for the test period only and is not a real-time station state."
+        if aggregation.get("available") else
+        f"- Station-level summary unavailable: {aggregation.get('reason', 'no station identifier present')}.")
+
+    text += [
+        "",
+        "## 7. Environment and reproducibility",
+        "",
+        f"- Python {manifest['python']}; " + ", ".join(f"{name} {ver}" for name, ver in manifest["packages"].items()) + ".",
+        "- The bundle stores the source hash, configuration hash, source-code hashes, split membership, review decisions, "
+        "fitted models, and classification rules.",
+        "",
+        "## 8. Limitations recorded for this run",
+        "",
+        *[f"- {warning}" for warning in result.warnings],
+        "",
+        "These statements describe software behavior on the supplied dataset. They do not establish operational validity "
+        "of the thresholds or real-world predictive performance.",
+        "",
+    ]
+    return "\n".join(text)
+
+
 def export_experiment(result, output_root="outputs"):
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ") + "_" + uuid.uuid4().hex[:6]
     directory = Path(output_root).resolve() / run_id
@@ -134,4 +272,5 @@ def export_experiment(result, output_root="outputs"):
     summary += "\n## Review and limitations\n\n" + ("\n".join("- " + w for w in result.warnings) or "No automatic diagnostic warnings.")
     summary += "\n\nRaw predictions are retained for evaluation. Negative enhanced predictions are floored at zero for classification only. Error columns mean actual minus predicted. Text beginning with spreadsheet formula prefixes is escaped in CSV/Excel exports.\n"
     (directory / "SUMMARY.md").write_text(summary, encoding="utf-8")
+    (directory / "METHODOLOGY.md").write_text(methodology_report(result, manifest), encoding="utf-8")
     return directory

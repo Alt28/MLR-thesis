@@ -343,7 +343,8 @@ class ExperimentStore:
             if name not in allowed: raise HTTPException(404, "Table not found.")
             path = directory / "csv" / f"{name}.csv"
         else:
-            filenames = {"excel": "experiment.xlsx", "bundle": "experiment-bundle.zip", "config": "config.json", "reviews": "review_decisions.json"}
+            filenames = {"excel": "experiment.xlsx", "bundle": "experiment-bundle.zip", "config": "config.json",
+                         "reviews": "review_decisions.json", "methodology": "METHODOLOGY.md"}
             if kind not in filenames: raise HTTPException(404, "Export type not found.")
             path = directory / filenames[kind]
         if not path.is_file(): raise HTTPException(404, "Artifact not found.")
