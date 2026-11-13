@@ -3,8 +3,10 @@ from pathlib import Path
 from io import BytesIO
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit, train_test_split
 from .config import PREDICTORS, CATEGORICAL, NUMERICAL, TARGET, ROW_ID
+
+GROUP_COLUMNS = ("Station ID", "Station")
 
 
 def validate_data(frame, require_target=True):
@@ -66,13 +68,43 @@ def load_dataset_bytes(name, content, require_target=False):
     return validate_data(data, require_target=require_target)
 
 
+def resolve_group_column(data, config):
+    """Metadata identifier that keeps related observations in one partition; never a predictor."""
+    configured = str(getattr(config, "split_group_column", "") or "").strip()
+    lookup = {str(column).strip().lower(): column for column in data.columns}
+    for name in ([configured] if configured else list(GROUP_COLUMNS)):
+        if name.strip().lower() in lookup:
+            return lookup[name.strip().lower()]
+    if configured:
+        raise ValueError(f"Grouped splitting needs the '{configured}' column; this dataset does not contain it.")
+    raise ValueError("Grouped splitting needs a Station ID (or Station) column, or a configured group column.")
+
+
+def grouped_split(data, config):
+    """Keep every observation of one group together, so repeated trips cannot span both partitions."""
+    column = resolve_group_column(data, config)
+    groups = data[column].astype(str).str.strip()
+    if data[column].isna().any() or groups.eq("").any():
+        raise ValueError(f"{column}: grouped splitting requires a group value for every observation.")
+    if groups.nunique() < 2:
+        raise ValueError(f"{column}: grouped splitting requires at least two distinct groups.")
+    splitter = GroupShuffleSplit(n_splits=1, test_size=config.test_size, random_state=config.random_state)
+    train_rows, test_rows = next(splitter.split(data, groups=groups))
+    return data.iloc[train_rows], data.iloc[test_rows], column
+
+
 def split_dataset(data, config):
     config.validate()
     if len(data) < 10:
         raise ValueError("At least 10 recorded observations are needed to create a split; substantially more are needed for research.")
-    train, test = train_test_split(data, test_size=config.test_size, random_state=config.random_state)
-    if len(train) < 2 or len(test) < 2:
-        raise ValueError("The chosen split needs at least two training and two test rows.")
+    if config.split_method == "grouped":
+        train, test, column = grouped_split(data, config)
+        if len(train) < 2 or len(test) < 2:
+            raise ValueError(f"The grouped split needs at least two training and two test rows. Adjust the test fraction or add more {column} groups.")
+    else:
+        train, test = train_test_split(data, test_size=config.test_size, random_state=config.random_state)
+        if len(train) < 2 or len(test) < 2:
+            raise ValueError("The chosen split needs at least two training and two test rows.")
     return train.copy(), test.copy()
 
 

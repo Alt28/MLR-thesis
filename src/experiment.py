@@ -5,7 +5,7 @@ from hashlib import sha256
 from pathlib import Path
 import pandas as pd
 from .config import TARGET, ROW_ID
-from .data_loader import load_dataset, validate_data, split_dataset
+from .data_loader import load_dataset, validate_data, split_dataset, resolve_group_column
 from .irregularity_detection import fit_iqr, flag_irregularities, apply_reviews
 from .mlr_model import MLRModels
 from .evaluation import compare_models, metrics
@@ -104,6 +104,7 @@ def run_experiment(prepared, decisions=None, fitted_models=None):
         warnings.append("No interactions were selected; baseline and enhanced specifications are identical.")
     if prepared.original.drop(columns=ROW_ID).duplicated().any():
         warnings.append("Duplicate observations exist. Confirm these are independent recordings; random splitting may overstate generalization for repeated or correlated observations.")
+    warnings.extend(split_warnings(prepared))
     study = controlled_comparison(prepared, train, models)
     warnings.extend("Original-data baseline: " + warning for warning in study["original_model"].warnings)
     provenance = getattr(prepared, "provenance", {})
@@ -111,6 +112,22 @@ def run_experiment(prepared, decisions=None, fitted_models=None):
         warnings.append(provenance.get("message", "Data source not documented."))
     if not study["metadata"]["review_changed_training_data"]:
         warnings.append("IQR review did not change training data; no benefit from correction/exclusion is demonstrated by this run.")
-    warnings.append(f"Evaluation uses one fixed holdout of {len(prepared.test)} observations. Do not infer statistical significance or real-world validity from this run alone.")
+    warnings.append(f"Evaluation uses one fixed {'grouped' if config.split_method == 'grouped' else 'random'} holdout of {len(prepared.test)} observations. Do not infer statistical significance or real-world validity from this run alone.")
     return ExperimentResult(prepared, train, audit, models, classifier, output, evaluation, comparison,
                             conclusion, warnings, study, mode_metrics, station_summary, station_aggregation)
+
+
+def split_warnings(prepared):
+    """Report observed group overlap instead of assuming that records are independent."""
+    config = prepared.config
+    try:
+        column = resolve_group_column(prepared.original, config)
+    except ValueError:
+        return []
+    groups = prepared.original[column].astype(str).str.strip()
+    if config.split_method == "grouped":
+        return [f"Grouped split by {column}: test groups are absent from training, so station-level leakage is avoided. Observations can still be dependent within a group."]
+    shared = set(groups.loc[prepared.training.index]) & set(groups.loc[prepared.test.index]) - {""}
+    if shared:
+        return [f"Random split placed {len(shared)} {column} value(s) in both the training and test partitions. Select the grouped split if repeated {column} observations are dependent."]
+    return []

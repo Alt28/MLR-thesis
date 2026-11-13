@@ -17,6 +17,8 @@ LABELS = ("Normal Operation", "Minor Delay", "Moderate Delay", "Severe Delay")
 
 TEST_SIZE = 0.20
 RANDOM_STATE = 42
+SPLIT_METHOD = "random"  # "grouped" keeps all observations of one station in a single partition.
+SPLIT_GROUP_COLUMN = ""  # Empty resolves the first available Station ID / Station metadata column.
 IQR_MULTIPLIER = 1.5
 IQR_COLUMNS = (*NUMERICAL, TARGET)
 PAIRWISE_INTERACTIONS = [("Passenger Volume", "Vehicle Frequency")]
@@ -40,6 +42,8 @@ NEGATIVE_WAIT_RULE = "clip_for_classification_only"
 class ResearchConfig:
     test_size: float = TEST_SIZE
     random_state: int = RANDOM_STATE
+    split_method: str = SPLIT_METHOD
+    split_group_column: str = SPLIT_GROUP_COLUMN
     iqr_multiplier: float = IQR_MULTIPLIER
     iqr_columns: tuple = IQR_COLUMNS
     pairwise_interactions: list = field(default_factory=lambda: list(PAIRWISE_INTERACTIONS))
@@ -79,6 +83,10 @@ class ResearchConfig:
             raise ValueError("Measurement units must be text.")
         if not 0 < self.test_size < 1:
             raise ValueError("test_size must be between 0 and 1.")
+        if self.split_method not in ("random", "grouped"):
+            raise ValueError("Split method must be random or grouped.")
+        if not isinstance(self.split_group_column, str):
+            raise ValueError("Split group column must be text.")
         if not math.isfinite(self.iqr_multiplier) or self.iqr_multiplier <= 0:
             raise ValueError("IQR multiplier must be positive and finite.")
         if not self.iqr_columns or not set(self.iqr_columns) <= set((*NUMERICAL, TARGET)):
