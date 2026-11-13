@@ -17,7 +17,7 @@ export const columnHelp: Record<string, string> = {
   'Prediction Error': predictionErrorHelp,
   'Baseline Error (actual - predicted)': predictionErrorHelp,
   'Enhanced Error (actual - predicted)': predictionErrorHelp,
-  'RMSE': 'Overall prediction error across the test dataset. Lower is better.',
+  'RMSE': 'Square root of the mean squared error, in minutes. It weights larger errors more heavily than a plain average error. Lower is better.',
   'Multi-Factor Station Score': 'Combined operational severity score from the six transportation predictors and the Enhanced MLR predicted waiting time.',
   'Overall Station Classification': 'Station condition based on Traffic Condition, Weather Condition, Passenger Volume, Route Distance, Vehicle Frequency, Time of Day, and Enhanced MLR Predicted Waiting Time.',
 }

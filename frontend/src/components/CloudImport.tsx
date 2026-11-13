@@ -1,4 +1,4 @@
-import { ArrowRight, BusFront, CloudDownload, Database, FileSpreadsheet, LoaderCircle, Search, TrainFront } from 'lucide-react'
+import { ArrowRight, BusFront, Database, FileSpreadsheet, LibraryBig, LoaderCircle, Search, TrainFront } from 'lucide-react'
 import { useState } from 'react'
 import type { Workspace } from '../hooks/useExperiment'
 import { datasetLibrary } from '../services/datasetLibrary'
@@ -24,9 +24,9 @@ export function CloudImport({w, imported}: {w: Workspace; imported: () => void})
     finally {setLoadingId(null)}
   }
   return <>
-    <button className="button cloud-import-trigger" disabled={w.busy} onClick={() => {setError(''); setQuery(''); setOpen(true)}}><CloudDownload size={18}/>Import Cloud Files</button>
-    {open && <Modal title="Cloud: Transportation Datasets" className="cloud-import-modal dataset-library-modal" close={() => setOpen(false)} canClose={!busy}>
-      <div className="library-navigation"><p>Click a dataset to import it directly into Transit Lab.</p></div>
+    <button className="button cloud-import-trigger" disabled={w.busy} onClick={() => {setError(''); setQuery(''); setOpen(true)}}><LibraryBig size={18}/>Dataset Library</button>
+    {open && <Modal title="Dataset library on this server" className="cloud-import-modal dataset-library-modal" close={() => setOpen(false)} canClose={!busy}>
+      <div className="library-navigation"><p>Example datasets bundled with Transit Lab. Select one to import it directly; this is not a connection to your cloud storage account. Use Upload Dataset for your own files.</p></div>
         <div className="library-search-area">
           <label className="library-search"><Search size={18} aria-hidden="true"/><input aria-label="Search library datasets" type="search" placeholder="Search by name or transport mode…" value={query} disabled={busy} onChange={e => {setQuery(e.target.value); setError('')}}/></label>
           <p className="library-disclosure">No download or re-upload needed. Files must pass the required-column checks.</p>
