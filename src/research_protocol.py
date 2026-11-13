@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pandas as pd
 from .config import ROW_ID, TARGET
+from .data_loader import resolve_group_column
 from .evaluation import metrics
 from .mlr_model import MLRModels
 
@@ -72,10 +73,13 @@ def controlled_comparison(prepared, reviewed, models):
                             "MSE reduction": first["MSE"] - second["MSE"],
                             "RMSE reduction (min)": first["RMSE"] - second["RMSE"],
                             "Outcome for second arm": outcome})
+    grouped = prepared.config.split_method == "grouped"
     metadata = {
         "version": PROTOCOL_VERSION, "arms": STUDY_ARMS, "review_changed_training_data": not identical_data,
         "same_test_observations": True, "test_record_ids": list(prepared.test.index),
-        "split_method": "random_holdout", "test_fraction": prepared.config.test_size,
+        "split_method": "grouped_holdout" if grouped else "random_holdout",
+        "split_group_column": resolve_group_column(prepared.original, prepared.config) if grouped else None,
+        "test_fraction": prepared.config.test_size,
         "random_seed": prepared.config.random_state,
         "interpretation": "Descriptive results for one fixed holdout. No statistical significance or generalization guarantee is inferred.",
         "main_comparison": "B vs C (identical reviewed training rows)",

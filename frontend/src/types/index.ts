@@ -2,7 +2,8 @@ export type TransportMode = 'all' | 'bus' | 'train' | 'unspecified'
 export type Cell = string | number | boolean | null
 export type Row = Record<string, Cell>
 export interface ResearchConfig {
-  test_size: number; random_state: number; iqr_multiplier: number; iqr_columns: string[];
+  test_size: number; random_state: number; split_method: 'random' | 'grouped'; split_group_column: string;
+  iqr_multiplier: number; iqr_columns: string[];
   pairwise_interactions: string[][]; higher_order_interactions: string[][];
   category_severity: Record<string, Record<string, number>>;
   numerical_directions: Record<string, 'higher' | 'lower' | null>;

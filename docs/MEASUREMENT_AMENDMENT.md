@@ -28,7 +28,7 @@ For a separate schedule-based experiment, scheduled frequency may be derived as 
 
 Traffic and weather are independently observed and linked to the same station and prediction time. Time of Day is derived from the passenger arrival timestamp using period boundaries fixed before evaluation. The data dictionary must define traffic categories and their relevance to each transport mode; rail observations must not receive an invented road-traffic category merely to satisfy the schema.
 
-Observation episodes sharing the same service window or trip may be dependent. The current system uses random holdout splitting; grouped or chronological evaluation would need an explicitly implemented and documented extension before claiming independence for such records. Report incomplete or censored waiting episodes rather than assigning arbitrary targets or silently hiding them.
+Observation episodes sharing the same service window or trip may be dependent. The system defaults to random holdout splitting and additionally offers a grouped holdout by station identifier; chronological evaluation is still not implemented and would need an explicitly documented extension. Grouped splitting prevents the same station from appearing in both partitions, but it does not establish independence within a group. Report incomplete or censored waiting episodes rather than assigning arbitrary targets or silently hiding them.
 
 ## Insert in Classification / Preprocessing
 

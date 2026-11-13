@@ -33,6 +33,46 @@ def test_validation_and_split(fixture_data):
         validate_data(fixture_data.drop(columns="Vehicle Frequency"))
 
 
+def test_grouped_split_requires_valid_groups_and_separates_them(fixture_data):
+    data = fixture_data.copy()
+    data["Station ID"] = [f"ST-{i % 8:02d}" for i in range(len(data))]
+    config = ResearchConfig(split_method="grouped")
+    train, test = split_dataset(data, config)
+    again, again_test = split_dataset(data, config)
+    assert train.equals(again) and test.equals(again_test)
+    assert set(train["Station ID"]).isdisjoint(test["Station ID"])
+    assert len(train) + len(test) == len(data)
+    random_train, random_test = split_dataset(data, ResearchConfig())
+    assert not set(random_train["Station ID"]).isdisjoint(random_test["Station ID"])
+
+    without_groups = data.drop(columns="Station ID")
+    with pytest.raises(ValueError, match="Station ID"):
+        split_dataset(without_groups, config)
+    with pytest.raises(ValueError, match="does not contain it"):
+        split_dataset(data, ResearchConfig(split_method="grouped", split_group_column="Route"))
+    single = data.copy()
+    single["Station ID"] = "ST-01"
+    with pytest.raises(ValueError, match="at least two distinct groups"):
+        split_dataset(single, config)
+    blank = data.copy()
+    blank.loc[blank.index[0], "Station ID"] = "  "
+    with pytest.raises(ValueError, match="group value for every observation"):
+        split_dataset(blank, config)
+
+
+def test_split_warnings_report_observed_group_overlap(fixture_data):
+    from src.experiment import run_experiment
+    data = fixture_data.copy()
+    data["Station ID"] = [f"ST-{i % 8:02d}" for i in range(len(data))]
+    random_warnings = run_experiment(prepare_experiment(data, ResearchConfig())).warnings
+    assert any("both the training and test partitions" in warning for warning in random_warnings)
+    assert any("fixed random holdout" in warning for warning in random_warnings)
+    grouped_warnings = run_experiment(prepare_experiment(data, ResearchConfig(split_method="grouped"))).warnings
+    assert any("Grouped split by Station ID" in warning for warning in grouped_warnings)
+    assert any("fixed grouped holdout" in warning for warning in grouped_warnings)
+    assert not any("both the training and test partitions" in warning for warning in grouped_warnings)
+
+
 def test_review_preserves_then_audits(fixture_data):
     data = fixture_data.copy()
     rid = data.index[0]

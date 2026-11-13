@@ -21,7 +21,7 @@ Useful identifying metadata: Record ID, Station ID (or `Station`), Route, Transp
 ## Dataset checks before final evaluation
 
 - Verify source authenticity, definitions, units, and the link between each row's predictors and target.
-- Check duplicates, repeated trips/stations, and chronological dependence before choosing the split. The current implementation uses a random holdout; grouped/time-based splits need a separately agreed implementation if those dependencies matter.
+- Check duplicates, repeated trips/stations, and chronological dependence before choosing the split. The implementation offers a random holdout (default) and a grouped holdout by station identifier; a time-based split still needs a separately agreed implementation if chronological dependence matters.
 - Ensure actual coverage supports the claims: bus-only observations do not demonstrate train performance. Do not simply add a Transport Mode metadata column and assume mode is modeled.
 - Examine category counts, numerical variation, feature count, rank, and conditioning. No universal row count is guaranteed sufficient by this software; justify sample size against the design and number of estimable terms with the adviser.
 - Decide interactions, classification rules, and evaluation protocol before examining the final test results. Do not keep changing seeds to report the best run.
