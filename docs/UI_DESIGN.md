@@ -12,7 +12,7 @@ Chart previews use a matching dark Matplotlib palette. Downloaded PNGs and the e
 - Desktop: dataset on the left and analysis results on the right. Mobile: the same sections stack without page-level horizontal overflow; wide tables scroll within their containers.
 - Dataset validation appears beside the input. The primary action is **Analyze Dataset**, disabled until there is a valid dataset and while work is running.
 - The workflow asks for explicit interaction approval only when needed, and opens IQR review when flagged observations have no recorded decision. It never automatically deletes flags.
-- The main result shows Predicted Waiting Time, Station Condition, and Model Accuracy (enhanced RMSE) only. View Predictions is directly available on the main result. View Details opens supporting evidence; Export Results downloads the results. Advanced Settings remains collapsed.
+- The main result shows Predicted Waiting Time, Station Condition, and Enhanced MLR RMSE only. View Predictions is directly available on the main result. View Details opens supporting evidence; Export Results downloads the results. Advanced Settings remains collapsed.
 - **Export Results** is one entry point for Excel, CSV, and the complete reproducibility bundle. It does not require another route.
 - Native dialogs have accessible titles, Escape dismissal, and focus return to the opening control. Buttons use brief hover/press feedback. Dialogs, disclosures, and newly available results use short fade/slide transitions. Reduced-motion preferences are respected.
 - No metric or plot appears before a completed analysis. Undefined classifications display **Requires Researcher Decision**.
@@ -22,7 +22,7 @@ Chart previews use a matching dark Matplotlib palette. Downloaded PNGs and the e
 
 The existing dataset panel, navigation, dark palette, and compact typography are retained. A lightly tinted teal-to-charcoal summary, restrained clock/gauge icons, fine dividers, and grouped actions make the result easier to scan. No new navigation or management features are introduced.
 
-The main panel shows the enhanced **Predicted Waiting Time** (38 px desktop, 34 px mobile), **Station Condition**, and **Model Accuracy** as enhanced RMSE rounded to two decimals in minutes. The observation ID identifies which record the result describes. Negative predictions retain their raw value and a brief pointer to the explanation. Undefined classifications remain **Requires Researcher Decision**. No sample values or confidence percentages are fabricated.
+The main panel shows the enhanced **Predicted Waiting Time** (38 px desktop, 34 px mobile), **Station Condition**, and **Enhanced MLR RMSE** rounded to two decimals in minutes. The observation ID identifies which record the result describes. Negative predictions retain their raw value and a brief pointer to the explanation. Undefined classifications remain **Requires Researcher Decision**. No sample values or confidence percentages are fabricated.
 
 **View Details** opens an accessible dialog in this order:
 
@@ -84,9 +84,9 @@ Single-mode files can be labeled using Set transport mode beside the dataset. Mi
 
 ## Cloud dataset import
 
-A secondary cloud-download button sits immediately beneath the local upload area. Its dialog contains a provider selector, sharing-link field, supported-file guidance, and local-copy explanation. Downloading/checking uses an indeterminate spinner with disabled controls; it does not fabricate progress. Validation failures remain visible in the dialog for correction, while a successful import closes it and restores the normal Analyze workflow. Existing dark colors, dialog motion, keyboard focus, and research logic remain intact.
+This section describes an earlier sharing-link import dialog with a provider selector and URL field. The current interface replaces that entry point with the bundled **Dataset Library** described below; the shared-link backend endpoint remains only for compatibility. Downloading/checking still uses an indeterminate spinner with disabled controls and never fabricates progress. Validation failures remain visible in the dialog for correction, while a successful import closes it and restores the normal Analyze workflow.
 
-This is shared-link import, not OAuth account integration. Google Drive and personal OneDrive CSV/XLSX files must be downloadable without signing in; Google Sheets, folders, and business accounts are excluded. Provider documentation consulted: [Google Drive downloads](https://developers.google.com/workspace/drive/api/guides/manage-downloads) and [Microsoft shared-item access](https://learn.microsoft.com/en-us/graph/api/shares-get). These documents describe provider download/access constraints; they are not guarantees that every anonymous sharing URL permits a download.
+The historical shared-link import was never OAuth account integration. Provider documentation consulted: [Google Drive downloads](https://developers.google.com/workspace/drive/api/guides/manage-downloads) and [Microsoft shared-item access](https://learn.microsoft.com/en-us/graph/api/shares-get). These documents describe provider download/access constraints; they are not guarantees that every anonymous sharing URL permits a download.
 
 
 ## Dataset layout cleanup
@@ -98,7 +98,7 @@ View Full Dataset sits beside the preview heading. Advanced Settings actions use
 
 ## Driving bus loading animation
 
-The loading sticker is replaced by a small locally bundled SVG bus with rotating wheel spokes, gentle suspension motion, moving road markings, and subtle speed lines. It appears only while analysis is pending; completion removes the scene immediately without an artificial delay or progress percentage. The existing status text remains accessible, while the decorative scene is hidden from assistive technology. Reduced-motion preferences stop both the CSS scene and the SVG wheel animations.
+The loading sticker is replaced by a small locally bundled SVG bus with rotating wheel spokes, gentle suspension motion, moving road markings, and subtle speed lines. It appears only while analysis is pending; completion removes the scene immediately without an artificial delay or progress percentage. The existing status text remains accessible, while the decorative scene is hidden from assistive technology. By explicit researcher request this one decorative scene keeps animating even when the device requests reduced motion; every other transition in the application still respects that preference.
 
 Asset: Microsoft Fluent Emoji [Bus, Flat](https://github.com/microsoft/fluentui-emoji/blob/main/assets/Bus/Flat/bus_flat.svg), fetched 5 November 2026, upstream Git blob f671a6dafeef4c0c8ffcd54e5b5d80d5add17b2a. Adaptations: mint/dark palette, cropped viewBox, animated wheel spokes, and CSS driving scene. The upstream MIT copyright/license is included in frontend/public/fonts/LICENSE-Fluent-Emoji.txt and the compiled distribution. No runtime GitHub request or animation library is needed.
 
@@ -106,3 +106,14 @@ Asset: Microsoft Fluent Emoji [Bus, Flat](https://github.com/microsoft/fluentui-
 ## Classification in the prediction table
 
 View Predictions now starts with Record ID, Enhanced Predicted Waiting Time, Station Condition, and Multi-Factor Score (0-3), followed by metadata, actual wait, Traditional prediction, and errors. This makes Solution 3 visible for every listed test observation. The same saved seven-factor label and score are used in the summary, table, and detailed breakdown. Pending classifications retain Requires Researcher Decision and a blank score. A short explanation distinguishes the combined score from waiting-time severity. Main-screen technical details remain collapsed.
+
+
+## Accuracy wording, dataset library, and split control
+
+Reviewed 13 November 2026 against the system behavior, not only its documentation.
+
+- **Enhanced MLR RMSE** is no longer described as an "average prediction error." The result panel and the RMSE explanation now state that it is measured in minutes and weights larger errors more heavily than a plain average. No displayed value changed.
+- The former **Import Cloud Files** button is now **Dataset Library**, opening **Dataset library on this server**. The dialog states that these files are bundled examples and that it is not a connection to a cloud storage account. Upload Dataset remains the path for the researcher's own files, and the file list, search, validation, and error handling are unchanged.
+- **Split & IQR settings** adds an evaluation-split selector: random observations (default) or grouped by station identifier, with an optional explicit group column. Each choice explains its consequence, and the form repeats that the split is a methodology decision to document. Opening the form changes nothing until it is saved; saving creates a revision through the existing workflow.
+- A station condition now requires documented units for **both** Vehicle Frequency and Route Distance. While either is blank, the result stays Requires Researcher Decision and the summary names the missing unit. The classification settings notice appears for either missing unit.
+- The decorative loading bus keeps its continuous motion at the researcher's explicit request. All other transitions still honor reduced-motion preferences.
