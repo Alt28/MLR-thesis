@@ -100,8 +100,9 @@ def test_complete_web_workflow(web, fixture_data):
     assert web.get(base + "/tables/study_predictions").json()["total"] == 16
     assert web.get(base + "/download/csv?table=study_comparisons").status_code == 200
     assert "Pending configuration" not in s["distribution"]
-    for kind in ["excel", "bundle", "config", "reviews"]:
+    for kind in ["excel", "bundle", "config", "reviews", "methodology"]:
         assert web.get(base + "/download/" + kind).status_code == 200
+    assert "Methodology as implemented" in web.get(base + "/download/methodology").text
     assert web.get(base + "/download/csv?table=predictions").status_code == 200
     assert web.get(base + "/figures/rmse").headers["content-type"] == "image/png"
     from PIL import Image

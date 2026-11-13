@@ -47,6 +47,27 @@ def test_complete_export(tmp_path, fixture_data):
     assert specification["Main Effects Retained"].all()
 
 
+def test_methodology_report_states_the_applied_methods(tmp_path, fixture_data):
+    data = fixture_data.copy()
+    data["Station ID"] = [f"ST-{i % 8:02d}" for i in range(len(data))]
+    config = ResearchConfig(split_method="grouped", vehicle_frequency_unit="fixture vehicles/hour",
+                            route_distance_unit="fixture km")
+    result = run_experiment(prepare_experiment(data, config))
+    report = (export_experiment(result, tmp_path) / "METHODOLOGY.md").read_text(encoding="utf-8")
+    assert "grouped holdout" in report and "Station ID" in report
+    assert f"test fraction {config.test_size}, seed {config.random_state}" in report
+    assert "fixture vehicles/hour" in report and "fixture km" in report
+    assert "Passenger Volume × Vehicle Frequency (pairwise)" in report
+    assert "Ordinary Least Squares" in report
+    for arm in ("Arm A:", "Arm B:", "Arm C:"):
+        assert arm in report
+    assert f"Multi-Factor Station Score = (sum of the seven severity scores) / 7" in report
+    assert all(str(bound) in report for bound in config.station_thresholds)
+    assert f"All arms are scored on the same {len(result.prepared.test)} test observations." in report
+    for warning in result.warnings:
+        assert warning in report
+
+
 def test_test_set_perturbation_cannot_change_training_artifacts(fixture_data):
     prepared = prepare_experiment(fixture_data, ResearchConfig())
     first = run_experiment(prepared)
