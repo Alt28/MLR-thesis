@@ -2,6 +2,25 @@
 
 Verified on 4 November 2026 using Windows, Python 3.13.7, Node.js 22.19.0, Microsoft Edge, and the versions recorded in `requirements-lock.txt` and `frontend/package-lock.json`.
 
+## Methodology export for the manuscript (13 November 2026)
+
+- Every completed run writes `METHODOLOGY.md` into its run folder and bundle, and it is downloadable from Export Results.
+- Regression test: the report states the applied split design and grouping column, the test fraction and seed, both declared measurement units, each selected interaction term with its order, OLS, all three arms with the shared test-observation count, the seven-factor score formula, every configured overall band, and every recorded limitation of that run.
+- The API exposes it as `download/methodology`, verified in the web workflow test alongside the existing Excel/bundle/config/review downloads.
+- Verified on a generated run: the report reproduced the exported fences, encoding reference categories, arm metrics, correlation-derived severity directions, category means, label distribution, package versions, and warnings without restating any value by hand.
+- The report describes one run's software behavior. It does not establish adviser approval, data provenance, or predictive validity.
+
+## Thesis-readiness fixes (13 November 2026)
+
+Scope: the measurement-unit requirement, the optional grouped evaluation split, accuracy wording, and the dataset-library label. Model fitting, OLS estimation, interaction construction, IQR review, and seven-factor scoring arithmetic are unchanged.
+
+- Full Python suite: **129 passed**, with the existing non-failing Starlette HTTPX transport deprecation warning. Frontend TypeScript checking passed.
+- New regression tests: every required unit independently blocks classification and names itself in the reason; declared units appear in the exported classification rules; grouped splitting is deterministic, separates groups, and rejects a missing column, a missing configured column, a single group, and blank group values; run warnings report observed station overlap for random splits and the applied split method for both; invalid `split_method`/`split_group_column` settings are rejected without mutating the experiment.
+- Verified directly against a 60-row artificial fixture with five station groups: the random split shared all five stations between partitions and emitted the overlap warning, while the grouped split produced disjoint station sets and recorded `grouped_holdout` with its group column in the protocol metadata.
+- Saved experiments created before this revision load unchanged: absent `split_method`/`split_group_column` keys fall back to the random default, and existing results are not rewritten.
+- The browser workflow asserts the corrected RMSE wording, the renamed Dataset Library button, and that opening the split form without saving leaves the stored split method unchanged.
+- These checks establish software behavior. They do not supply recorded transportation data, adviser approval of the Vehicle Frequency definition or classification thresholds, or evidence of real-world predictive validity.
+
 ## Controlled thesis protocol revision (5 November 2026)
 
 - Full Python suite: **79 passed**. The existing non-failing Starlette HTTPX transport deprecation warning remains.
