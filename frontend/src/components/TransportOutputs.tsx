@@ -50,6 +50,6 @@ export function TransportContext({s, row}: {s: Experiment; row: Row}) {
   return <div className={`transport-context mode-${mode}`}>
     <span className="transport-icon"><Icon size={25} strokeWidth={1.7}/></span>
     <div className="transport-context-copy"><strong>{mode === 'bus' ? 'Bus prediction' : mode === 'train' ? 'Train prediction' : 'Transport prediction'}</strong><span>{location || (mode === 'unspecified' ? 'Transport mode not specified' : 'Selected dataset observation')}</span></div>
-    <span className="historical-label">Dataset prediction</span>
+    <span className="historical-label">Enhanced MLR</span>
   </div>
 }

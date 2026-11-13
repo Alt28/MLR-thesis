@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Download, Upload } from 'lucide-react'
 import type { Cell, Experiment, PredictionOutput, Row } from '../types'
 import { api } from '../services/api'
+import { columnHelp, columnLabel } from '../services/presentation'
 import { format } from './Common'
 
 function csvCell(value: Cell) {
@@ -34,12 +35,12 @@ export function PredictionOnly({s}: {s: Experiment}) {
     finally { setWorking(false) }
   }
 
-  const previewColumns = ['Record ID', 'Enhanced Predicted Waiting Time',
+  const previewColumns = ['Record ID', 'Enhanced Predicted Waiting Time', 'Baseline Predicted Waiting Time',
     'Overall Station Classification', 'Multi-Factor Station Score'].filter(column => result?.columns.includes(column))
 
   return <section className="prediction-only">
     <h3>Predict new observations</h3>
-    <p className="section-caption">Upload CSV/XLSX rows with all six predictors and no Actual Waiting Time. These forecasts are separate from the held-out evaluation and do not change the trained models or reported metrics.</p>
+    <p className="section-caption">Upload CSV/XLSX rows with all six predictors and no Actual Waiting Time. These forecasts are separate from the held-out evaluation and do not change the trained models or reported metrics. Actual waiting times and prediction errors are unavailable for these new observations.</p>
     <label className="button small prediction-upload">
       <Upload size={15}/>{working ? 'Predicting…' : 'Choose prediction dataset'}
       <input type="file" accept=".csv,.xlsx" disabled={working} onChange={event => {
@@ -54,7 +55,7 @@ export function PredictionOnly({s}: {s: Experiment}) {
         ? <p className="section-caption">{result.station_aggregation.station_count} station summaries; {result.station_aggregation.ungrouped_records} records without a Station ID.</p>
         : <p className="section-caption">{result.station_aggregation.reason}</p>}
       <div className="table-scroll"><table aria-label="Prediction-only results">
-        <thead><tr>{previewColumns.map(column => <th key={column}>{column}</th>)}</tr></thead>
+        <thead><tr>{previewColumns.map(column => <th key={column} title={columnHelp[column]}>{columnLabel(column)}</th>)}</tr></thead>
         <tbody>{result.rows.slice(0, 10).map((row, index) => <tr key={String(row['Record ID'] ?? index)}>
           {previewColumns.map(column => <td key={column}>{format(row[column])}</td>)}
         </tr>)}</tbody>

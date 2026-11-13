@@ -1,6 +1,7 @@
 import { Activity, BusFront, CarFront, Clock3, Cloud, CloudRain, Gauge, Route, UsersRound } from 'lucide-react'
 import type { Experiment, Row } from '../types'
 import { CATEGORICAL, LABELS, PREDICTORS } from '../types'
+import { columnHelp } from '../services/presentation'
 import { format } from './Common'
 
 const DECISION = 'Requires Researcher Decision'
@@ -80,7 +81,7 @@ export function StationCondition({s, row, summaryOnly = false}: {s: Experiment; 
     : factor === 'Passenger Volume' ? 'passengers' : ''
 
   if (summaryOnly) return <section className={`station-brief station-band-${band}`} aria-label="Station Condition">
-    <h3>Station Condition</h3>
+    <h3 title={columnHelp['Overall Station Classification']}>Station Condition</h3>
     <div className="station-condition"><strong className={score == null ? 'unresolved-condition' : 'condition-label'}>{label}</strong></div>
     {signals.length > 0 && <div className="condition-signals">
       <div className="signals-heading"><strong>Higher-threshold factors</strong><span>Classification inputs, not proven causes</span></div>
@@ -95,7 +96,7 @@ export function StationCondition({s, row, summaryOnly = false}: {s: Experiment; 
           : Activity
         return <li key={factor}>
           <span className={`signal-icon${factor === 'Weather Condition' && isRain ? ' rainy' : ''}`}><Icon size={16} aria-hidden="true"/>{factor === 'Weather Condition' && isRain && <span className="signal-rainfall" aria-hidden="true"><i/><i/></span>}</span>
-          <span className="signal-copy"><strong>{factor === 'Predicted Waiting Time' ? 'Predicted wait' : factor}</strong><small>{SEVERITIES[factorScore]} · {format(value, factor === 'Passenger Volume' ? 0 : 2)}{unit(factor) ? ` ${unit(factor)}` : ''}</small></span>
+          <span className="signal-copy"><strong>{factor === 'Predicted Waiting Time' ? 'Enhanced MLR predicted wait' : factor}</strong><small>{SEVERITIES[factorScore]} · {format(value, factor === 'Passenger Volume' ? 0 : 2)}{unit(factor) ? ` ${unit(factor)}` : ''}</small></span>
         </li>
       })}</ul>
     </div>}
@@ -106,9 +107,9 @@ export function StationCondition({s, row, summaryOnly = false}: {s: Experiment; 
     <div className="station-heading"><h3>Station Condition</h3></div>
     <div className="station-summary">
       <div className="station-condition"><span>Overall Station Condition</span><strong className={score == null ? 'unresolved-condition' : 'condition-label'}>{label}</strong></div>
-      <div className="station-score"><span>Multi-Factor Score</span><strong title={score == null ? DECISION : String(score)}>{fixed(score)}</strong><small>out of 3.00</small></div>
+      <div className="station-score"><span title={columnHelp['Multi-Factor Station Score']}>Multi-Factor Score</span><strong title={score == null ? DECISION : String(score)}>{fixed(score)}</strong><small>out of 3.00</small></div>
     </div>
-    <p className="station-context">Based on the predicted wait and six transportation factors for this observation.</p>
+    <p className="station-context">Based on the Enhanced MLR predicted wait and six transportation factors for this observation.</p>
     <p className="sr-only" role="status">Observation {String(row['Record ID'])}: {label}. Multi-factor score {fixed(score)}.</p>
     {score == null && <p className="decision-note">View Threshold Details for the unresolved factors. Constant variables require suitable varied observations; changing a direction cannot create variation. Undefined rules or units can be reviewed in Advanced Settings.</p>}
     <details className="disclosure classification-details">
