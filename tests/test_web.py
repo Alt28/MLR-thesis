@@ -70,6 +70,7 @@ def test_complete_web_workflow(web, fixture_data):
     config["category_severity"] = {"Traffic Condition": {"A": 0, "B": 1, "C": 3}, "Weather Condition": {"W0": 0, "W1": 3}, "Time of Day": {"T0": 0, "T1": 3}}
     config["numerical_directions"]["Route Distance"] = "higher"
     config["vehicle_frequency_unit"] = "fixture vehicles/hour"
+    config["route_distance_unit"] = "fixture km"
     s = web.put(base + "/config", json={"revision": 1, "config": config, "approve_interactions": True}).json()
     assert s["revision"] == 2 and s["trained"] == []
     assert web.post(base + "/train", json={"revision": 1}).status_code == 409
@@ -186,7 +187,7 @@ def test_single_action_analysis_preserves_reviews_and_requires_confirmation(web,
 
 
 
-@pytest.mark.parametrize("key,value", [("category_severity", []), ("category_severity", {"Traffic Condition": []}), ("numerical_directions", None), ("vehicle_frequency_unit", 100), ("random_state", -1)])
+@pytest.mark.parametrize("key,value", [("category_severity", []), ("category_severity", {"Traffic Condition": []}), ("numerical_directions", None), ("vehicle_frequency_unit", 100), ("random_state", -1), ("split_method", "chronological"), ("split_group_column", 5)])
 def test_invalid_web_settings_do_not_mutate_experiment(web, fixture_data, key, value):
     s = upload(web, fixture_data)
     config = {**s["config"], key: value}
