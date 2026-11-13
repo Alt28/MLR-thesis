@@ -6,6 +6,8 @@ from .config import CATEGORICAL, NUMERICAL, PREDICTORS, TARGET, LABELS
 CLASSIFICATION_VERSION = 2
 INSUFFICIENT = "Insufficient Variation for Classification"
 UNDEFINED = "Requires Researcher Decision"
+# Both measured predictors need a documented unit before any station label is issued.
+REQUIRED_UNITS = {"Vehicle Frequency": "vehicle_frequency_unit", "Route Distance": "route_distance_unit"}
 SEVERITIES = ("Normal", "Minor", "Moderate", "Severe")
 # Numerical-resolution safeguards, not statistical significance tests.
 VARIATION_RTOL = 1e-9
@@ -102,6 +104,11 @@ class StationClassifier:
     def __init__(self, config):
         self.config = config
 
+    def undeclared_units(self):
+        """Factors whose measurement unit has not been documented for this experiment."""
+        return [factor for factor, field in REQUIRED_UNITS.items()
+                if not str(getattr(self.config, field, "")).strip()]
+
     def fit(self, training):
         self.config.validate()
         self.method_version = CLASSIFICATION_VERSION
@@ -170,6 +177,8 @@ class StationClassifier:
             "direction_method": "Configured direction takes precedence; otherwise training Pearson correlation sign. No significance claim.",
             "variation_relative_tolerance": VARIATION_RTOL, "variation_absolute_tolerance": VARIATION_ATOL,
             "correlation_zero_tolerance": CORRELATION_ZERO_TOLERANCE,
+            "measurement_units": {factor: str(getattr(self.config, field, "")).strip()
+                                  for factor, field in REQUIRED_UNITS.items()},
             "wait_thresholds": list(self.config.wait_thresholds), "station_thresholds": list(self.config.station_thresholds),
         }
         return self
@@ -195,7 +204,8 @@ class StationClassifier:
         output["Predicted Waiting Time Classification Status"] = "Valid"
         severity_columns = [f"{c} Severity" for c in PREDICTORS] + ["Predicted Waiting Time Severity"]
         complete = output[severity_columns].notna().all(axis=1)
-        if not self.config.vehicle_frequency_unit.strip(): complete[:] = False
+        undeclared = self.undeclared_units()
+        if undeclared: complete[:] = False
         output["Multi-Factor Station Score"] = output[severity_columns].sum(axis=1, min_count=7).div(7).where(complete)
         output["Overall Station Classification"] = output["Multi-Factor Station Score"].map(
             lambda score: station_label(score, self.config.station_thresholds) if pd.notna(score) else "Pending configuration")
@@ -203,7 +213,7 @@ class StationClassifier:
         for rid in observations.index:
             missing = [f"{col}: {output.at[rid, col + ' Classification Status']}" for col in PREDICTORS
                        if pd.isna(output.at[rid, col + " Severity"])]
-            if not self.config.vehicle_frequency_unit.strip(): missing.append("Vehicle Frequency unit: Requires Researcher Decision")
+            missing.extend(f"{factor} unit: {UNDEFINED}" for factor in undeclared)
             reasons.append("; ".join(missing))
         output["Missing Classification Definitions"] = reasons
         return output

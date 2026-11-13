@@ -19,6 +19,7 @@ def test_cli_inspect_configured_run_and_empty_rejection(tmp_path, fixture_data):
     config["category_severity"] = {"Traffic Condition": {"A": 0, "B": 1, "C": 3}, "Weather Condition": {"W0": 0, "W1": 3}, "Time of Day": {"T0": 0, "T1": 3}}
     config["numerical_directions"]["Route Distance"] = "higher"
     config["vehicle_frequency_unit"] = "fixture vehicles/hour"
+    config["route_distance_unit"] = "fixture km"
     (folder / "config.json").write_text(json.dumps(config))
     exports = tmp_path / "exports"
     run = invoke("run", fixture_path, "--config", folder / "config.json", "--reviews", folder / "review_decisions.json", "--output", exports)

@@ -25,6 +25,12 @@ Increasing quartile scoring uses <=Q1: 0, (Q1,Q2]: 1, (Q2,Q3]: 2, >Q3: 3. Revers
 
 When held-out records include `Station ID` or `Station`, the system groups by that metadata value and reports the mean of classifiable seven-factor scores, the total/classifiable/unresolved record counts, and the same configured overall band for the mean. Rows with empty station identifiers are counted as ungrouped; unresolved records are counted but excluded from the mean. This describes the held-out observations grouped by station. The thesis PDF does not define this aggregation, and the result is not a time-specific station condition or validated operational classification.
 
+## Required measurement units
+
+Updated 13 November 2026. A station condition requires a documented unit for both measured numerical predictors: Vehicle Frequency and Route Distance. While either declaration is blank, every observation keeps the Pending configuration status, the Multi-Factor Station Score stays empty, and the reason explicitly names the missing unit. The applied declarations are stored in `classification_rules.json` under `measurement_units` and exported with the run.
+
+This is a documentation requirement, not a conversion: the application still never infers or rescales values from a unit label. Earlier runs saved before this rule retain their stored results; rerun Analyze Dataset after declaring the units to obtain labels under the current rule.
+
 ## Variation safeguard
 
 A numerical factor cannot receive a score if it is constant/effectively constant or Q1/Q2/Q3 all collapse. A configured direction cannot bypass this check. Values and quartiles are tested separately using range <= 1e-12 + 1e-9 * maximum absolute magnitude. These are documented numerical-resolution tolerances, not minimum scientifically important differences. Partial quartile ties are allowed; unoccupied severity bins are not manufactured.

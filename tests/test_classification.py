@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from src.config import ResearchConfig, PREDICTORS, LABELS
-from src.station_classification import numerical_severity, waiting_time_severity, station_label, StationClassifier
+from src.station_classification import numerical_severity, waiting_time_severity, station_label, StationClassifier, UNDEFINED
 from src.data_loader import split_dataset
 
 
@@ -12,6 +12,7 @@ def configured():
         category_severity={"Traffic Condition": {"A": 0, "B": 1, "C": 3}, "Weather Condition": {"W0": 0, "W1": 3}, "Time of Day": {"T0": 0, "T1": 3}},
         numerical_directions={"Passenger Volume": "higher", "Route Distance": "higher", "Vehicle Frequency": "lower"},
         vehicle_frequency_unit="fixture vehicles/hour",
+        route_distance_unit="fixture km",
     )
 
 
@@ -84,7 +85,7 @@ def test_training_category_means_generate_and_store_all_four_scores(fixture_data
     training = fixture_data.copy()
     training['Actual Waiting Time'] = np.arange(1., 81.)
     training['Traffic Condition'] = np.repeat(['a', 'b', 'c', 'd'], 20)
-    config = ResearchConfig(vehicle_frequency_unit='fixture vehicles/hour')
+    config = ResearchConfig(vehicle_frequency_unit='fixture vehicles/hour', route_distance_unit='fixture km')
     before = config.to_dict()
     classifier = StationClassifier(config).fit(training)
     assert classifier.category_mappings['Traffic Condition'] == {'a': 0, 'b': 1, 'c': 2, 'd': 3}
@@ -153,6 +154,22 @@ def test_zero_relationship_requires_direction_and_explicit_override_wins(fixture
     fixed = StationClassifier(configured()).fit(training)
     assert fixed.directions['Route Distance'] == 'higher'  # Explicit override, not a silent replacement.
     assert fixed.distance_correlation == pytest.approx(-1)
+
+
+def test_every_required_measurement_unit_blocks_classification(fixture_data):
+    complete = configured()
+    for field in ('vehicle_frequency_unit', 'route_distance_unit'):
+        config = replace(complete, **{field: '   '})
+        result = StationClassifier(config).fit(fixture_data).classify(fixture_data, np.full(len(fixture_data), 22.))
+        assert result['Overall Station Classification'].eq('Pending configuration').all()
+        assert result['Multi-Factor Station Score'].isna().all()
+        factor = 'Vehicle Frequency' if field == 'vehicle_frequency_unit' else 'Route Distance'
+        assert result['Missing Classification Definitions'].str.contains(f'{factor} unit: {UNDEFINED}', regex=False).all()
+    classifier = StationClassifier(complete).fit(fixture_data)
+    assert classifier.undeclared_units() == []
+    assert classifier.rule_metadata['measurement_units'] == {
+        'Vehicle Frequency': 'fixture vehicles/hour', 'Route Distance': 'fixture km'}
+    assert classifier.classify(fixture_data, np.full(len(fixture_data), 22.))['Multi-Factor Station Score'].notna().all()
 
 
 def test_category_overrides_and_unseen_categories(fixture_data):
