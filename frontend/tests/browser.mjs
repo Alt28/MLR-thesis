@@ -31,7 +31,7 @@ try {
   const close=async()=>{const count=await page.getByRole('dialog').count();await dialog().getByRole('button',{name:'Close dialog'}).click();await until(async()=>await page.getByRole('dialog').count()<count,'dialog exit')}
   const openAdvanced=async()=>{if(await page.locator('.advanced-research').getAttribute('open')===null)await page.getByText('Advanced Research Details',{exact:true}).click()}
   const idle=async()=>{await page.getByRole('button',{name:'Analyze Dataset',exact:true}).waitFor();await until(()=>page.getByRole('button',{name:'Analyze Dataset',exact:true}).isEnabled(),'run available')}
-  const complete=async()=>{await page.getByRole('heading',{name:'Model Accuracy',exact:true}).waitFor({timeout:60000});await idle()}
+  const complete=async()=>{await page.getByRole('heading',{name:'Enhanced MLR RMSE',exact:true}).waitFor({timeout:60000});await idle()}
   const overflow=async(label)=>assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`No page overflow: ${label}`)
   await page.goto(url)
   await page.getByRole('heading',{name:'Your results will appear here'}).waitFor()
@@ -226,13 +226,16 @@ try {
   assert.equal(state.reviewed_training,state.training-1)
   const audit=await get('/tables/review_audit')
   assert.deepEqual(new Set(audit.rows.map(r=>r.Action)),new Set(['retain','exclude','correct']))
-  assert.deepEqual(await page.locator('.result-overview>section').evaluateAll(sections=>sections.map(s=>s.querySelector('h3').textContent)),['Predicted Waiting Time','Station Condition','Model Accuracy'])
+  assert.deepEqual(await page.locator('.result-overview>section').evaluateAll(sections=>sections.map(s=>s.querySelector('h3').textContent)),['Enhanced MLR Predicted Waiting Time','Station Condition','Enhanced MLR RMSE'])
   assert.equal(await page.locator('.classification-details').count(),0)
   assert.equal(await page.locator('.research-details-modal').count(),0)
   assert.equal(await page.getByRole('table',{name:'Model comparison',exact:true}).count(),0)
   assert.equal(await page.locator('.station-bands').count(),0)
   assert.deepEqual(await page.locator('.result-actions>button').allTextContents(),['View Predictions','View Details','Export Results'])
   assert.doesNotMatch(await page.locator('.analysis-output').innerText(),/Solution [123]|SOP [123]|Traditional MLR|Multi-Factor Score|Actual Waiting Time|Q1|IQR|MSE =/)
+  assert.equal(await page.locator('.historical-label').textContent(),'Enhanced MLR')
+  assert.equal(await page.locator('.result-observation').textContent(),'Enhanced MLR estimate for this observation')
+  await page.getByText('Average prediction error across the held-out test observations.',{exact:true}).waitFor()
   const rmse=state.metrics.find(m=>m.Model==='Enhanced MLR').RMSE
   assert.equal(Number(await page.locator('.accuracy-summary strong').textContent()),Number(rmse.toFixed(2)))
   await page.locator('.station-brief').getByText('Requires Researcher Decision',{exact:true}).waitFor()
@@ -242,7 +245,14 @@ try {
   assert.equal(await page.locator('.advanced-research').getAttribute('open'),null)
   assert.equal(await page.getByRole('table',{name:'coefficients',exact:true}).count(),0)
   assert.deepEqual(await page.locator('.research-details>section').evaluateAll(nodes=>nodes.map(n=>n.querySelector('h3').textContent)),['Summary','Model Performance','Predict new observations','Prediction Details'])
-  assert.ok((await page.locator('.metric-explanations').innerText()).includes('not a confidence percentage'))
+  assert.ok((await page.locator('.full-comparison>.metric-explanations').innerText()).includes('not a confidence percentage'))
+  assert.deepEqual(await page.locator('.prediction-reference dt').allTextContents(),['Actual Waiting Time','Traditional MLR Prediction','Enhanced MLR Prediction'])
+  assert.deepEqual(await page.locator('.prediction-errors dt').allTextContents(),['Traditional Prediction Error','Enhanced Prediction Error','Station Condition','Multi-Factor Score'])
+  assert.match(await page.locator('.prediction-explanations').innerText(),/Negative = model predicted too high/)
+  assert.match(await page.locator('.prediction-explanations').innerText(),/Positive = model predicted too low/)
+  assert.match(await page.locator('.prediction-explanations').innerText(),/Closer to 0 = closer prediction/)
+  const comparisonStyles=await page.locator('.model-comparison tbody tr').first().locator('td').evaluateAll(cells=>cells.map(cell=>{const s=getComputedStyle(cell);return [s.fontSize,s.fontWeight,s.color]}))
+  assert.deepEqual(comparisonStyles[0],comparisonStyles[1],'Both model metrics have equal visual weight')
   assert.equal(state.study_available,true)
   assert.equal(state.study_metrics.length,3)
   assert.equal(state.mode_metrics.length,4)
@@ -325,6 +335,7 @@ try {
     const modeTable=dialog().getByRole('table',{name:'predictions',exact:true})
     await modeTable.locator('tbody tr').first().waitFor()
     const headers=await modeTable.locator('thead th').allTextContents()
+    for(const label of ['Actual Waiting Time','Traditional MLR Prediction','Enhanced MLR Prediction','Traditional Prediction Error','Enhanced Prediction Error','Station Condition','Multi-Factor Score (0–3)'])assert.ok(headers.includes(label),'Prediction table includes '+label)
     assert.equal(headers[2],'Station Condition')
     assert.equal(headers[3],'Multi-Factor Score (0–3)')
     const shown=await modeTable.locator('tbody tr').first().locator('td').allTextContents()
@@ -379,8 +390,8 @@ try {
   const another=predictions.rows.find((r,i)=>i>0 && labels.indexOf(r['Overall Station Classification'])!==r['Predicted Waiting Time Severity']) || predictions.rows[1]
   await close()
   await page.getByRole('button',{name:'View Predictions'}).click()
-  await dialog().getByRole('columnheader',{name:'Traditional Error (actual - predicted)',exact:true}).waitFor()
-  await dialog().getByRole('columnheader',{name:'Enhanced Error (actual - predicted)',exact:true}).waitFor()
+  await dialog().getByRole('columnheader',{name:'Traditional Prediction Error',exact:true}).waitFor()
+  await dialog().getByRole('columnheader',{name:'Enhanced Prediction Error',exact:true}).waitFor()
   const pan = dialog().locator('.draggable-table')
   await until(()=>pan.evaluate(el=>el.scrollWidth>el.clientWidth),'prediction table overflow')
   await pan.scrollIntoViewIfNeeded()
@@ -503,6 +514,28 @@ try {
     assert.equal(await factor.locator('.factor-score').textContent(),'\u2014')
   }
   await close()
+  // Artificial API summaries exercise each performance outcome without retraining
+  // or changing the saved observation predictions or classification scores.
+  const comparisonId=await page.evaluate(()=>localStorage.getItem('transit-experiment'))
+  const comparisonUrl=url+'/api/experiments/'+comparisonId
+  const comparisonState=await (await page.request.get(comparisonUrl)).json()
+  const comparisonRows=await (await page.request.get(comparisonUrl+'/tables/predictions')).json()
+  for(const [baselineMse,enhancedMse,conclusion,expected] of [
+    [9,4,'Enhanced MLR has lower held-out MSE and RMSE in this experiment.','Enhanced MLR produced lower prediction error in this experiment.'],
+    [4,9,'Enhanced MLR has higher held-out MSE and RMSE in this experiment.','Traditional MLR produced lower prediction error in this experiment.'],
+    [4,4,'Both models have effectively equal held-out error in this experiment.','Both models have effectively equal held-out error in this experiment.'],
+  ]) {
+    await page.route(comparisonUrl,route=>route.fulfill({json:{...comparisonState,conclusion,metrics:[
+      {Model:'Baseline MLR',MSE:baselineMse,RMSE:Math.sqrt(baselineMse)},
+      {Model:'Enhanced MLR',MSE:enhancedMse,RMSE:Math.sqrt(enhancedMse)},
+    ]}}))
+    await page.reload();await complete();await page.locator('.primary-wait>strong').waitFor()
+    assert.equal(Number(await page.locator('.primary-wait>strong').textContent()),Number(comparisonRows.rows[0]['Enhanced Predicted Waiting Time'].toFixed(2)),'Enhanced prediction stays primary for every performance outcome')
+    assert.equal(Number(await page.locator('.accuracy-summary strong').textContent()),Math.sqrt(enhancedMse))
+    await page.getByRole('button',{name:'View Details',exact:true}).click()
+    assert.equal(await page.locator('.performance-conclusion').textContent(),expected)
+    await close();await page.unroute(comparisonUrl)
+  }
   assert.deepEqual(errors,[],'No JavaScript exceptions')
   console.log('PASS: two-page navigation; CSV/XLSX validation; explicit interactions; IQR retain/correct/exclude; one-action training; pooled and bus/train metrics; station summaries; target-free prediction; seven-factor classification; full tables; exports; persistence; responsive and keyboard checks. Artificial software fixtures only.')
 } catch(error) {

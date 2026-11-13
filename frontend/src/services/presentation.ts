@@ -1,7 +1,33 @@
 // Presentation names only. Existing scientific artifact keys remain compatible.
-export const columnLabel = (name: string) => name === 'Overall Station Classification' ? 'Station Condition'
-  : name === 'Multi-Factor Station Score' ? 'Multi-Factor Score (0–3)'
-  : name.replace(/^Baseline/, 'Traditional')
+const columnLabels: Record<string, string> = {
+  'Overall Station Classification': 'Station Condition',
+  'Multi-Factor Station Score': 'Multi-Factor Score (0–3)',
+  'Baseline Predicted Waiting Time': 'Traditional MLR Prediction',
+  'Enhanced Predicted Waiting Time': 'Enhanced MLR Prediction',
+  'Baseline Error (actual - predicted)': 'Traditional Prediction Error',
+  'Enhanced Error (actual - predicted)': 'Enhanced Prediction Error',
+}
+export const columnLabel = (name: string) => columnLabels[name] ?? name.replace(/^Baseline/, 'Traditional')
+
+const predictionErrorHelp = 'Actual Waiting Time − Predicted Waiting Time. Negative = model predicted too high. Positive = model predicted too low. Closer to 0 = closer prediction for that observation.'
+export const columnHelp: Record<string, string> = {
+  'Actual Waiting Time': 'Recorded waiting time from the dataset.',
+  'Baseline Predicted Waiting Time': 'Prediction produced by the baseline additive MLR.',
+  'Enhanced Predicted Waiting Time': 'Prediction produced by MLR with the selected interaction terms.',
+  'Prediction Error': predictionErrorHelp,
+  'Baseline Error (actual - predicted)': predictionErrorHelp,
+  'Enhanced Error (actual - predicted)': predictionErrorHelp,
+  'RMSE': 'Overall prediction error across the test dataset. Lower is better.',
+  'Multi-Factor Station Score': 'Combined operational severity score from the six transportation predictors and the Enhanced MLR predicted waiting time.',
+  'Overall Station Classification': 'Station condition based on Traffic Condition, Weather Condition, Passenger Volume, Route Distance, Vehicle Frequency, Time of Day, and Enhanced MLR Predicted Waiting Time.',
+}
+
+// Keep the backend's metric comparison and effective-equality rule authoritative.
+export const performanceConclusion = (conclusion: string | null) => {
+  if (conclusion === 'Enhanced MLR has lower held-out MSE and RMSE in this experiment.') return 'Enhanced MLR produced lower prediction error in this experiment.'
+  if (conclusion === 'Enhanced MLR has higher held-out MSE and RMSE in this experiment.') return 'Traditional MLR produced lower prediction error in this experiment.'
+  return conclusion?.replaceAll('Baseline', 'Traditional').replaceAll('baseline', 'traditional')
+}
 export const displayValue = (value: unknown) => value === 'Baseline MLR' ? 'Traditional MLR' : value === 'Pending configuration' ? 'Requires Researcher Decision' : value === 'retain_unreviewed' ? 'Retain (default)' : value
 
 export function friendlyError(value: string, context: 'dataset' | 'analysis' = 'analysis') {
