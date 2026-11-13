@@ -32,7 +32,7 @@ export function AnalysisResults({s}: {s: Experiment}) {
   const enhanced = s.metrics.find(m => m.Model === 'Enhanced MLR')
   const condition = typeof row?.['Multi-Factor Station Score'] === 'number' ? String(row['Overall Station Classification']) : 'Requires Researcher Decision'
   const missing = String(row?.['Missing Classification Definitions'] || '').split(';').map(text => text.trim()).filter(Boolean).map(text =>
-    text.includes('Vehicle Frequency unit') ? 'Vehicle Frequency: the measurement unit needs to be defined.' : text
+    / unit: /.test(text) ? `${text.split(' unit:')[0]}: the measurement unit needs to be defined.` : text
       .replace(': Insufficient Variation for Classification', ': the training data does not vary enough to support a condition.')
       .replace(': Requires Researcher Decision', ': a scoring rule is still unavailable.'))
 
@@ -55,7 +55,7 @@ export function AnalysisResults({s}: {s: Experiment}) {
       <section className="accuracy-summary">
         <div className="result-label"><Gauge size={18} aria-hidden="true"/><h3 title={columnHelp.RMSE}>Enhanced MLR RMSE</h3></div>
         <p><strong>{minutes(enhanced?.RMSE)}</strong> <span>min</span></p>
-        <small className="accuracy-scope">Average prediction error across the held-out test observations.</small>
+        <small className="accuracy-scope">Typical size of this model's prediction errors, in minutes. Larger errors count more heavily, so this is not a plain average.</small>
         <small className="accuracy-scope">Across all {s.test} test observations</small>
       </section>
     </div>
