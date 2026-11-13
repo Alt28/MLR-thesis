@@ -335,12 +335,17 @@ try {
     const modeTable=dialog().getByRole('table',{name:'predictions',exact:true})
     await modeTable.locator('tbody tr').first().waitFor()
     const headers=await modeTable.locator('thead th').allTextContents()
-    for(const label of ['Actual Waiting Time','Traditional MLR Prediction','Enhanced MLR Prediction','Traditional Prediction Error','Enhanced Prediction Error','Station Condition','Multi-Factor Score (0–3)'])assert.ok(headers.includes(label),'Prediction table includes '+label)
-    assert.equal(headers[2],'Station Condition')
-    assert.equal(headers[3],'Multi-Factor Score (0–3)')
+    assert.deepEqual(headers.slice(0,8),['Record ID','Actual Waiting Time','Traditional MLR Prediction','Enhanced MLR Prediction','Traditional Prediction Error','Enhanced Prediction Error','Station Condition','Multi-Factor Score (0–3)'],'Comparison columns stay together before transport metadata')
     const shown=await modeTable.locator('tbody tr').first().locator('td').allTextContents()
-    assert.equal(shown[2],expected['Overall Station Classification'])
-    assert.ok(Math.abs(Number(shown[3])-expected['Multi-Factor Station Score'])<.00051)
+    for(const [label,field] of [
+      ['Actual Waiting Time','Actual Waiting Time'],
+      ['Traditional MLR Prediction','Baseline Predicted Waiting Time'],
+      ['Enhanced MLR Prediction','Enhanced Predicted Waiting Time'],
+      ['Traditional Prediction Error','Baseline Error (actual - predicted)'],
+      ['Enhanced Prediction Error','Enhanced Error (actual - predicted)'],
+      ['Multi-Factor Score (0–3)','Multi-Factor Station Score'],
+    ])assert.ok(Math.abs(Number(shown[headers.indexOf(label)].replaceAll(',',''))-expected[field])<.00051,label+' matches its backend field')
+    assert.equal(shown[headers.indexOf('Station Condition')],expected['Overall Station Classification'])
     if(mode==='Bus')await dialog().screenshot({path:path.join(root,'frontend/test-results/prediction-station-condition.png')})
     const modeIndex=headers.indexOf('Transport Mode')
     assert.ok(modeIndex>=0)
