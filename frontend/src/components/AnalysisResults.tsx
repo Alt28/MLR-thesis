@@ -19,6 +19,7 @@ const minutes = (value: unknown) => typeof value === 'number'
 export function AnalysisResults({s}: {s: Experiment}) {
   const [row, setRow] = useState<Row | null>(null)
   const [full, setFull] = useState(false)
+  const [predictionOffset, setPredictionOffset] = useState(0)
   const [error, setError] = useState('')
   const [mode, setMode] = useState<TransportMode>('all')
   const [loading, setLoading] = useState(true)
@@ -28,6 +29,7 @@ export function AnalysisResults({s}: {s: Experiment}) {
     api.table(s.id, 'predictions', '', 0, 1, mode).then(data => {if (active) setRow(data.rows[0] || null)}).catch(e => {if (active) setError(e.message)}).finally(() => {if (active) setLoading(false)})
     return () => {active = false}
   }, [s.id, s.revision, mode])
+  useEffect(() => {setPredictionOffset(0)}, [s.id, s.revision, mode])
   const traditional = s.metrics.find(m => m.Model === 'Baseline MLR')
   const enhanced = s.metrics.find(m => m.Model === 'Enhanced MLR')
   const condition = typeof row?.['Multi-Factor Station Score'] === 'number' ? String(row['Overall Station Classification']) : 'Requires Researcher Decision'
@@ -98,6 +100,6 @@ export function AnalysisResults({s}: {s: Experiment}) {
     </ResearchDetails>
     <ExportResults s={s}/>
     </div>
-    {full && <Modal title="Prediction results" close={() => setFull(false)} className="wide-modal"><div className="modal-body"><p className="muted">{mode === 'all' ? 'All test observations.' : `${mode === 'bus' ? 'Bus' : mode === 'train' ? 'Train' : 'Unspecified transport'} test observations.`} Select a row to update the main result.</p><p className="section-caption">Station Condition combines all six transportation factors and the Enhanced MLR predicted wait. The Multi-Factor Score is their average severity, from 0 to 3. See View Details for the threshold breakdown.</p><DataTable key={mode} s={s} name="predictions" transportMode={mode} columns={['Record ID', TARGET, 'Baseline Predicted Waiting Time', 'Enhanced Predicted Waiting Time', 'Baseline Error (actual - predicted)', 'Enhanced Error (actual - predicted)', 'Overall Station Classification', 'Multi-Factor Station Score', ...s.metadata]} onRow={value => {setRow(value); setFull(false)}} actionLabel="Inspect observation"/><p className="section-caption">Waiting times and prediction errors are in minutes.</p><PredictionExplanations/></div></Modal>}
+    {full && <Modal title="Prediction results" close={() => setFull(false)} className="wide-modal"><div className="modal-body"><p className="muted">{mode === 'all' ? 'All test observations.' : `${mode === 'bus' ? 'Bus' : mode === 'train' ? 'Train' : 'Unspecified transport'} test observations.`} Select a row to update the main result.</p><p className="section-caption">Station Condition combines all six transportation factors and the Enhanced MLR predicted wait. The Multi-Factor Score is their average severity, from 0 to 3. See View Details for the threshold breakdown.</p><DataTable key={mode} s={s} name="predictions" transportMode={mode} initialOffset={predictionOffset} onOffsetChange={setPredictionOffset} columns={['Record ID', TARGET, 'Baseline Predicted Waiting Time', 'Enhanced Predicted Waiting Time', 'Baseline Error (actual - predicted)', 'Enhanced Error (actual - predicted)', 'Overall Station Classification', 'Multi-Factor Station Score', ...s.metadata]} onRow={value => {setRow(value); setFull(false)}} actionLabel="Inspect observation"/><p className="section-caption">Waiting times and prediction errors are in minutes.</p><PredictionExplanations/></div></Modal>}
   </div>
 }
