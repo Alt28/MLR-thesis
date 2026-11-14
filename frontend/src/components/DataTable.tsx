@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, LoaderCircle, Search } from 'lucide-react'
 import { api } from '../services/api'
 import type { Experiment, Row, TableResult, TransportMode } from '../types'
@@ -6,13 +6,20 @@ import { Empty, format, Badge } from './Common'
 import { DragScroll } from './DragScroll'
 import { columnHelp, columnLabel, displayValue } from '../services/presentation'
 
-export function DataTable({s, name, onRow, actionLabel = 'Inspect', columns, emptyTitle = 'No records to display', transportMode = 'all'}: {s: Experiment; name: string; onRow?: (row: Row) => void; actionLabel?: string; columns?: string[]; emptyTitle?: string; transportMode?: TransportMode}) {
+export function DataTable({s, name, onRow, actionLabel = 'Inspect', columns, emptyTitle = 'No records to display', transportMode = 'all', initialOffset = 0, onOffsetChange}: {s: Experiment; name: string; onRow?: (row: Row) => void; actionLabel?: string; columns?: string[]; emptyTitle?: string; transportMode?: TransportMode; initialOffset?: number; onOffsetChange?: (offset: number) => void}) {
   const [data, setData] = useState<TableResult | null>(null)
   const [query, setQuery] = useState('')
-  const [offset, setOffset] = useState(0)
+  const [offset, setOffsetState] = useState(initialOffset)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  useEffect(() => {setOffset(0); setQuery(''); setData(null); setLoading(true)}, [s.id, s.revision, name, transportMode])
+  const scope = `${s.id}:${s.revision}:${name}:${transportMode}`
+  const lastScope = useRef(scope)
+  const setOffset = (value: number) => {setOffsetState(value); onOffsetChange?.(value)}
+  useEffect(() => {
+    if (lastScope.current === scope) return
+    lastScope.current = scope
+    setOffset(0); setQuery(''); setData(null); setLoading(true)
+  }, [scope])
   useEffect(() => {
     let active = true
     const timer = setTimeout(() => {
