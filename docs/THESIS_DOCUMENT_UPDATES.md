@@ -52,6 +52,18 @@ Add after the existing description of the quantitative experimental design:
 
 State which design your final run used, and why.
 
+### B2a. Section 3.1.1, Data Collection and Dataset Description — field observation procedure
+
+Replace the bracketed draft paragraphs of 3.1.1 with the following once collection is finished, filling the brackets from the built `recorded_dataset.xlsx` (Dataset, Readiness, and Exclusions sheets):
+
+> The dataset was collected through direct field observation by the researchers at [number] public transport stops and stations in Metro Manila — [list stations, with mode and direction] — between [first date] and [last date], covering peak and off-peak periods. Two roles were used in every observation session. A counter recorded, in consecutive 15-minute blocks, the number of passengers arriving for the observed service and direction, the number of vehicles that stopped and served that direction, and the observed weather and road traffic condition. A timer applied systematic sampling by selecting the next passenger to join the queue after the previous sampled passenger had boarded, and recorded the time that passenger arrived at the designated waiting area and the time the passenger boarded, together with the number of full vehicles that passed without the passenger boarding. Counting began at least 60 minutes before the first sampled passenger in each session.
+>
+> Each model variable was computed from these raw entries rather than recorded directly. Actual Waiting Time is the boarding time minus the arrival time in minutes. Passenger Volume is the number of passengers counted in the four completed 15-minute blocks preceding the block that contains the passenger's arrival, and Vehicle Frequency is 60 × N / 60, where N is the number of serving vehicles counted in the same four blocks. Weather Condition and Traffic Condition are those recorded for the block that contains the arrival; weather was checked against PAGASA observations and advisories, and traffic was coded as Light, Moderate, or Heavy using the Google Maps live traffic layer. Time of Day is assigned from the arrival time using the fixed periods Peak Morning (06:00–09:00), Mid-Day (09:00–16:00), Peak Evening (16:00–20:00), and Night (20:00–06:00). Route Distance is the length of the observed service route in kilometres, taken from [official line or route maps / Google Maps route measurement].
+>
+> A total of [number] passengers were timed. [number] were excluded before analysis, with the reason recorded for each: [for example, fewer than four completed count blocks before arrival]. The final dataset contains [number] observations from [number] bus and [number] train stops. Only times and counts were recorded; no names, photographs, or other personal information were collected, in accordance with Republic Act No. 10173 (Data Privacy Act of 2012). [State the permission obtained from station management or operators, if any.]
+
+Change the period boundaries in the text if you edit them in the workbook's Lists sheet.
+
 ### B3. Section 3.2.1, Step 2 (Solution 1) — PDF 37 (32)
 
 The implemented rule matches the document; add the decisions and their traceability:
@@ -62,9 +74,9 @@ The implemented rule matches the document; add the decisions and their traceabil
 
 Add the exact specification actually fitted:
 
-> Categorical predictors are represented by reference-category indicator variables fitted on the training partition; the alphabetically first observed training category is the reference. The enhanced model retains all six main effects and adds only the explicitly selected interaction terms: Passenger Volume × Vehicle Frequency (pairwise) and Passenger Volume × Vehicle Frequency × Time of Day (higher-order). Interactions involving a categorical predictor are formed by multiplying each of its non-reference indicators with the remaining selected columns. No exhaustive search over possible interactions is performed, and higher-order terms do not automatically introduce their lower-order components. The specification is fixed and approved before the test partition is evaluated.
+> Categorical predictors are represented by reference-category indicator variables fitted on the training partition; the alphabetically first observed training category is the reference. The enhanced model retains all six main effects and adds the explicitly selected interaction terms: Passenger Volume × Vehicle Frequency (pairwise) and Passenger Volume × Vehicle Frequency × Time of Day (higher-order). Following the hierarchy principle (Aiken & West, 1991), the lower-order components of the higher-order term that were not selected, Passenger Volume × Time of Day and Vehicle Frequency × Time of Day, are also included, so that the higher-order coefficient does not depend on the arbitrary zero point of each variable. Before the products are formed, each numerical factor is centered at its training-partition mean to reduce multicollinearity between main effects and interaction terms; main effects remain in their original units, and because the model is hierarchical, centering changes neither the predictions nor the highest-order coefficients. Interactions involving a categorical predictor are formed by multiplying each of its non-reference indicators with the remaining selected columns. No exhaustive search over possible interactions is performed. The specification is fixed and approved before the test partition is evaluated.
 
-Replace the two example terms if your approved specification differs; the list must match the exported `selected_interactions` table.
+Replace the two example terms if your approved specification differs; the list must match the exported `selected_interactions` table. If you turn centering off (`center_interactions = false`), delete the centering sentence; the applied means are in the exported `interaction_centering` table.
 
 ### B5. New subsection, "Controlled comparison arms" — insert in 3.2.1 after Step 6, PDF 40 (35)
 
@@ -82,9 +94,9 @@ Replace "predefined operational thresholds" with the implemented rules. These ar
 >
 > The predicted waiting time produced by Arm C is scored using fixed operational bands: 0 for 15 minutes or less, 1 for more than 15 up to 20, 2 for more than 20 up to 25, and 3 for more than 25 minutes.
 >
-> Numerical predictors are scored against their first, second, and third quartiles computed with linear interpolation on the reviewed training partition. For increasing severity, a value receives 0 at or below Q1, 1 above Q1 up to Q2, 2 above Q2 up to Q3, and 3 above Q3; reverse severity assigns 3 minus that score. The severity direction is taken from an explicitly documented researcher configuration when one is provided; otherwise it follows the sign of the Pearson correlation between that predictor and Actual Waiting Time in the reviewed training partition. This correlation is a descriptive association in the training sample and is not a test of significance or causation.
+> Numerical predictors are scored against their first, second, and third quartiles computed with linear interpolation on the reviewed training partition. For increasing severity, a value receives 0 at or below Q1, 1 above Q1 up to Q2, 2 above Q2 up to Q3, and 3 above Q3; reverse severity assigns 3 minus that score. The severity direction is determined automatically from an additive Multiple Linear Regression fitted on the reviewed training partition with all six predictors, so that each predictor's effect is measured while the other predictors are held constant: a positive coefficient means higher values are more severe, and a negative coefficient means lower values are more severe. A predictor whose partial F-test p-value is 0.05 or greater has no detectable effect on waiting time and receives a severity of 0 for every value.
 >
-> Categorical predictors are scored by comparing each category's mean Actual Waiting Time in the reviewed training partition with the training waiting-time quartiles, using increasing severity. A documented researcher mapping overrides the derived score.
+> Categorical predictors are scored from the same additive regression. Each category's effect in minutes is measured against the most favourable category of that predictor; the most favourable category receives 0, the least favourable receives 3, and the remaining categories receive scores proportional to their effect, rounded to the nearest integer. A categorical predictor with no detectable effect (partial F-test p ≥ 0.05) receives 0 for every category. Using adjusted rather than raw averages prevents misleading rules when factors occur together, for example when more vehicles are scheduled during crowded peak periods.
 >
 > A factor receives no score when its training values are constant or effectively constant, when its quartiles collapse, when a category was never observed in training and has no documented mapping, or when the direction cannot be resolved. When any of the seven factors or a required measurement unit is unresolved, the observation is reported as Requires Researcher Decision. The framework never averages the remaining factors, substitutes zero, or assigns a default Normal condition. Unresolved observations remain in the reported denominator and their specific reasons are exported.
 >
@@ -123,7 +135,8 @@ The current table lists Jupyter Notebook and Python 3.12 and omits the web appli
 | Visual Studio Code | Integrated development environment |
 | pandas | Dataset handling and quartile computation |
 | NumPy | Numerical computation and interaction-term construction |
-| scikit-learn | Ordinary Least Squares estimation, train/test partitioning, MSE and RMSE |
+| scikit-learn | Ordinary Least Squares estimation, train/test partitioning, cross-validation folds, MSE, RMSE, MAE, R², Cohen's kappa |
+| SciPy | Coefficient p-values and confidence intervals, Wilcoxon signed-rank and paired t-tests |
 | Matplotlib | Figures for prediction and model comparison |
 | openpyxl | Excel dataset reading and workbook export |
 | joblib | Saving fitted models for reproducibility |
@@ -140,24 +153,34 @@ Append the reproducibility rule:
 
 > Every completed run exports the configuration, the training and test membership, the review decisions with reasons, the fitted models, the learned classification rules, the applied measurement units, the software environment, and source-code hashes. A generated methodology record states the split design, fences, encoding, interaction terms, arms, thresholds, and limitations actually applied in that run.
 
+### B12. Section 3.4.2, new "Statistical Evaluation" subsection — after Performance Evaluation
+
+> In addition to MSE and RMSE, each model is evaluated with the Mean Absolute Error (MAE), the average absolute difference between actual and predicted waiting times in minutes, and the held-out coefficient of determination (R² = 1 − SSE/SST computed on the test observations). Multicollinearity is assessed with the variance inflation factor of every model term, VIF = 1 / (1 − R²ⱼ), where R²ⱼ is obtained by regressing term j on the remaining terms; values above 10 indicate strong multicollinearity. Regression coefficients are reported with classical OLS standard errors, t statistics, two-sided p-values, and 95% confidence intervals.
+>
+> To test whether the difference between the traditional and enhanced models exceeds chance variation, two procedures are applied. First, on the held-out test observations, the per-observation squared errors of two arms are compared with the Wilcoxon signed-rank test and the paired t-test at α = 0.05. Second, repeated k-fold cross-validation (5 folds repeated 10 times with seed 42) is performed within the reviewed training partition only; in each fold the encoding, centering means, and coefficients of both models are re-estimated on that fold's training rows. The fold-level MSE differences are tested with the corrected resampled t-test of Nadeau and Bengio (2003), which adjusts the variance for overlapping training folds. When a grouped partition is used, station groups are also kept intact within every fold.
+>
+> The Multi-Factor Threshold-Based Station Classification is checked by classifying each test observation twice: once with the Enhanced MLR predicted waiting time and once with the actual waiting time, keeping the other six factors identical. Exact agreement, agreement within one condition level, Cohen's kappa, and the confusion matrix describe how prediction error changes the reported station condition. This check does not validate the thresholds against operational standards.
+
+Add the Nadeau and Bengio reference: Nadeau, C., & Bengio, Y. (2003). Inference for the generalization error. *Machine Learning, 52*(3), 239–281. https://doi.org/10.1023/A:1024068626366
+
 ---
 
 ## C. Chapter 4 reporting structure
 
 Report only what a completed run produced; take the numbers from `METHODOLOGY.md` and the exported tables.
 
-- **4.1 Effect of IQR-based irregularity detection.** Report training and test sizes, the fences per screened variable, the flag count, and the retain/correct/exclude counts with their reasons. Then report Arm A versus Arm B MSE and RMSE. If no training record changed, state plainly that no benefit from correction or exclusion was demonstrated; do not present a flag count as an improvement.
-- **4.2 Evaluation of interaction terms.** Report the selected terms with their coefficients, the feature counts, the design-rank and conditioning diagnostics, and the Arm B versus Arm C comparison. Report an increase in error honestly if that is the outcome. Arm A versus Arm C is the combined workflow, not isolated evidence about interactions.
-- **4.3 Multi-Factor Threshold-Based Station Classification.** Report the applied units, thresholds, derived category mappings and their training means, the per-factor severity scores, and the count and proportion of observations in each condition. Include unresolved observations in the denominator and explain why they are unresolved. Include the station-level summary if you kept B7.
-- **4.4 Result of thesis.** Summarise all three arms, separate prediction accuracy from decision-support classification, and state the data provenance, sampling coverage, test size, split design, and limitations.
+- **4.1 Effect of IQR-based irregularity detection.** Report training and test sizes, the fences per screened variable, the flag count, and the retain/correct/exclude counts with their reasons. Then report Arm A versus Arm B MSE, RMSE, MAE, and R², with the A vs B paired-test p-values from `heldout_significance`. If no training record changed, state plainly that no benefit from correction or exclusion was demonstrated; do not present a flag count as an improvement.
+- **4.2 Evaluation of interaction terms.** Report the selected terms with their coefficients, standard errors, p-values, and 95% confidence intervals; the feature counts; the design-rank, conditioning, and VIF diagnostics; and the Arm B versus Arm C comparison. Add the B vs C paired tests and the cross-validation summary (mean ± SD of each metric, the share of folds in which Arm C was better, and the corrected resampled t-test p-value). Use the cross-validation MSE boxplot as a figure. Report an increase in error, or a non-significant difference, honestly if that is the outcome. Arm A versus Arm C is the combined workflow, not isolated evidence about interactions.
+- **4.3 Multi-Factor Threshold-Based Station Classification.** Report the applied units, thresholds, derived category mappings and their training means, the per-factor severity scores, and the count and proportion of observations in each condition. Include unresolved observations in the denominator and explain why they are unresolved. Add the classification agreement table and confusion matrix (actual-wait label versus predicted-wait label). Include the station-level summary if you kept B7.
+- **4.4 Result of thesis.** Summarise all three arms, separate prediction accuracy from decision-support classification, and state the data provenance, sampling coverage, test size, split design, statistical-test results, and limitations.
 
-Table 4.1 should contain the arms, their training and test row counts, and their MSE and RMSE, so the baseline definition stays unambiguous.
+Table 4.1 should contain the arms, their training and test row counts, and their MSE, RMSE, MAE, and R², so the baseline definition stays unambiguous.
 
 ---
 
 ## D. Chapter 1 and 5 adjustments
 
-- **1.5 Scope and Limitations, PDF 18–19 (13–14).** Add: evaluation uses a single fixed holdout rather than cross-validation or significance testing; the station condition is a researcher-defined decision-support rule and is not independently validated; results apply only to the sampled stations, routes, and observation period.
+- **1.5 Scope and Limitations, PDF 18–19 (13–14).** Add: the final comparison uses one fixed holdout, supported by paired tests and repeated cross-validation within the training partition, which describe variability within the dataset rather than real-world generalization; the station condition is a researcher-defined decision-support rule and is not independently validated; results apply only to the sampled stations, routes, and observation period.
 - **1.6 Definition of Terms, PDF 19–21 (14–16).** Fix A4 and A7, then add entries for: Multi-Factor Station Score; Requires Researcher Decision; Comparison Arms A, B, and C; Grouped Partitioning; and Reviewed Training Observations.
 - **Chapter 5, PDF 54 onward.** Conclusions must follow the actual measured outcome of the three arms, including an outcome in which the enhanced model does not reduce error. Recommendations can then include collecting observation-level recorded data, validating the classification thresholds against independent operational references, and testing a time-based partition.
 
@@ -168,7 +191,7 @@ Table 4.1 should contain the arms, their training and test row counts, and their
 The software cannot supply these, and the current bundled datasets are synthetic:
 
 1. Real-world predictive accuracy, until recorded observation-level data is collected under the B1 definitions.
-2. Statistical significance, confidence intervals, or causal effects; the design is one descriptive holdout.
+2. Causal effects, or significance beyond what the exported tests show. Report p-values exactly as exported, with their assumptions (paired tests treat test rows as independent; coefficient p-values assume independent, constant-variance errors), and never call a p-value at or above 0.05 an improvement.
 3. Validated operational station conditions; the thresholds are researcher-defined decision-support rules.
 4. Real-time monitoring, dispatching, or scheduling capability, consistent with the existing 1.5 scope statement.
 
@@ -177,7 +200,7 @@ The software cannot supply these, and the current bundled datasets are synthetic
 ## F. Checklist before submission
 
 1. Run the final dataset, then download **Export Results > Methodology as implemented**.
-2. Copy its split design, fences, interaction terms, arm metrics, thresholds, category mappings, and label distribution into Sections 3.1–3.4 and Chapter 4.
+2. Copy its split design, fences, centering, interaction terms, VIF, coefficient table, arm metrics, paired tests, cross-validation results, thresholds, category mappings, label distribution, and classification agreement into Sections 3.1–3.4 and Chapter 4.
 3. Apply amendments A1–A7 so the document no longer contradicts itself.
 4. Confirm Table 3.1 units match the declared units in the run, and that both declared units appear in the exported configuration.
-5. Have your adviser approve the Vehicle Frequency redefinition (B1), the three-arm design (B5), the classification rules (B6), and the station summary (B7) before presenting any result.
+5. Have your adviser approve the Vehicle Frequency redefinition (B1), the three-arm design (B5), and the station summary (B7) before presenting any result. The classification rules (B6) are derived automatically from the training data and need no manual approval.

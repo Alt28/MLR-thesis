@@ -8,6 +8,8 @@ The revised collection protocol uses service frequency in **vehicles/hour** and 
 
 `philippine_sources/` contains downloaded supporting records and prepared reference tables. These are not complete model inputs; see `docs/PHILIPPINE_DATA_SOURCES.md`. Missing waiting times and predictors have not been fabricated.
 
+`field_collection_workbook.xlsx` is the empty on-site collection workbook (15-minute counts plus passenger stopwatch times). After collection, run `.\.venv\Scripts\python.exe scripts\field_data.py build data\field_collection_workbook.xlsx` to produce `recorded_dataset.xlsx` for upload. See the "Field-collection workbook" section of `docs/DATA_COLLECTION_GUIDE.md`.
+
 The exact required headers are:
 
 `Traffic Condition`, `Weather Condition`, `Passenger Volume`, `Route Distance`, `Vehicle Frequency`, `Time of Day`, `Actual Waiting Time`.

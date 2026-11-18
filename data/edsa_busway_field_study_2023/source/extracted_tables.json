@@ -1,0 +1,379 @@
+{
+  "source_sha256": "dc83217327b82f7b75784aa37a2dd58e3bc38162809d5935f5569b2de2710362",
+  "dwell": [
+    {
+      "direction": "Northbound",
+      "station": "PITx",
+      "am_peak_seconds": 107,
+      "pm_peak_seconds": 78,
+      "source_page": 11
+    },
+    {
+      "direction": "Northbound",
+      "station": "City of Dreams",
+      "am_peak_seconds": 17,
+      "pm_peak_seconds": 22,
+      "source_page": 11
+    },
+    {
+      "direction": "Northbound",
+      "station": "DFA",
+      "am_peak_seconds": 19,
+      "pm_peak_seconds": 18,
+      "source_page": 11
+    },
+    {
+      "direction": "Northbound",
+      "station": "Roxas Boulevard",
+      "am_peak_seconds": 271,
+      "pm_peak_seconds": 204,
+      "source_page": 11
+    },
+    {
+      "direction": "Northbound",
+      "station": "Taft Avenue",
+      "am_peak_seconds": 122,
+      "pm_peak_seconds": 178,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Ayala",
+      "am_peak_seconds": 114,
+      "pm_peak_seconds": 103,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Buendia",
+      "am_peak_seconds": 45,
+      "pm_peak_seconds": 43,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Guadalupe",
+      "am_peak_seconds": 35,
+      "pm_peak_seconds": 55,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Ortigas",
+      "am_peak_seconds": 96,
+      "pm_peak_seconds": 286,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Santolan",
+      "am_peak_seconds": 27,
+      "pm_peak_seconds": 33,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Main Avenue",
+      "am_peak_seconds": 102,
+      "pm_peak_seconds": 120,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Nepa Q. Mart",
+      "am_peak_seconds": 87,
+      "pm_peak_seconds": 92,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Quezon Avenue",
+      "am_peak_seconds": 101,
+      "pm_peak_seconds": 202,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "North Avenue",
+      "am_peak_seconds": 267,
+      "pm_peak_seconds": 285,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Roosevelt",
+      "am_peak_seconds": 253,
+      "pm_peak_seconds": 184,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Kaingin",
+      "am_peak_seconds": 54,
+      "pm_peak_seconds": 66,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Balintawak",
+      "am_peak_seconds": 45,
+      "pm_peak_seconds": 56,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Bagong Barrio",
+      "am_peak_seconds": 68,
+      "pm_peak_seconds": 87,
+      "source_page": 12
+    },
+    {
+      "direction": "Northbound",
+      "station": "Monumento",
+      "am_peak_seconds": 39,
+      "pm_peak_seconds": 41,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Monumento",
+      "am_peak_seconds": 138,
+      "pm_peak_seconds": 71,
+      "source_page": 11
+    },
+    {
+      "direction": "Southbound",
+      "station": "Bagong Barrio",
+      "am_peak_seconds": 223,
+      "pm_peak_seconds": 224,
+      "source_page": 11
+    },
+    {
+      "direction": "Southbound",
+      "station": "Balintawak",
+      "am_peak_seconds": 8,
+      "pm_peak_seconds": 6,
+      "source_page": 11
+    },
+    {
+      "direction": "Southbound",
+      "station": "Kaingin",
+      "am_peak_seconds": 82,
+      "pm_peak_seconds": 63,
+      "source_page": 11
+    },
+    {
+      "direction": "Southbound",
+      "station": "Roosevelt",
+      "am_peak_seconds": 135,
+      "pm_peak_seconds": 103,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "North Avenue",
+      "am_peak_seconds": 110,
+      "pm_peak_seconds": 136,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Quezon Avenue",
+      "am_peak_seconds": 91,
+      "pm_peak_seconds": 167,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Nepa Q. Mart",
+      "am_peak_seconds": 122,
+      "pm_peak_seconds": 143,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Main Avenue",
+      "am_peak_seconds": 93,
+      "pm_peak_seconds": 143,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Santolan",
+      "am_peak_seconds": 42,
+      "pm_peak_seconds": 51,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Ortigas",
+      "am_peak_seconds": 105,
+      "pm_peak_seconds": 200,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Guadalupe",
+      "am_peak_seconds": 30,
+      "pm_peak_seconds": 32,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Buendia",
+      "am_peak_seconds": 39,
+      "pm_peak_seconds": 27,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Ayala",
+      "am_peak_seconds": 189,
+      "pm_peak_seconds": 258,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Tramo",
+      "am_peak_seconds": 25,
+      "pm_peak_seconds": 38,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Taft Avenue",
+      "am_peak_seconds": 140,
+      "pm_peak_seconds": 106,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Roxas Boulevard",
+      "am_peak_seconds": 84,
+      "pm_peak_seconds": 67,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "MOA",
+      "am_peak_seconds": 87,
+      "pm_peak_seconds": 214,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "DFA/Shell/Starbucks",
+      "am_peak_seconds": 12,
+      "pm_peak_seconds": 8,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "Ayala Malls/Aseana",
+      "am_peak_seconds": 54,
+      "pm_peak_seconds": 54,
+      "source_page": 12
+    },
+    {
+      "direction": "Southbound",
+      "station": "PITx",
+      "am_peak_seconds": 162,
+      "pm_peak_seconds": 117,
+      "source_page": 12
+    }
+  ],
+  "bus_counts": [
+    {
+      "time": "5:00 am - 6:00 am",
+      "southbound": 79,
+      "northbound": 53
+    },
+    {
+      "time": "6:00 am - 7:00 am",
+      "southbound": 69,
+      "northbound": 73
+    },
+    {
+      "time": "7:00 am - 8:00 am",
+      "southbound": 73,
+      "northbound": 82
+    },
+    {
+      "time": "4:00 pm - 5:00 pm",
+      "southbound": 59,
+      "northbound": 73
+    },
+    {
+      "time": "5:00 pm - 6:00 pm",
+      "southbound": 69,
+      "northbound": 63
+    },
+    {
+      "time": "6:00 pm - 7:00 pm",
+      "southbound": 73,
+      "northbound": 41
+    }
+  ],
+  "survey_coverage": [
+    {
+      "operator": "RRCG",
+      "date": "July 11, 2023",
+      "buses": 5,
+      "roundtrips": 20
+    },
+    {
+      "operator": "RRCG",
+      "date": "July 12, 2023",
+      "buses": 5,
+      "roundtrips": 18
+    },
+    {
+      "operator": "RRCG",
+      "date": "July 13, 2023",
+      "buses": 5,
+      "roundtrips": 16
+    },
+    {
+      "operator": "RRCG",
+      "date": "July 17, 2023",
+      "buses": 2,
+      "roundtrips": 8
+    },
+    {
+      "operator": "RRCG",
+      "date": "July 18, 2023",
+      "buses": 2,
+      "roundtrips": 8
+    },
+    {
+      "operator": "Vil 5000",
+      "date": "July 19, 2023",
+      "buses": 3,
+      "roundtrips": 7
+    },
+    {
+      "operator": "Pascual Liner",
+      "date": "July 19, 2023",
+      "buses": 3,
+      "roundtrips": 12
+    },
+    {
+      "operator": "Pascual Liner",
+      "date": "July 21, 2023",
+      "buses": 3,
+      "roundtrips": 12
+    },
+    {
+      "operator": "Pascual Liner",
+      "date": "July 28, 2023",
+      "buses": 1,
+      "roundtrips": 4
+    }
+  ],
+  "verification": {
+    "dwell_numeric_cells": 80,
+    "bus_counts_match_actual_column_table_5": true,
+    "survey_total_buses": 29,
+    "survey_total_roundtrips": 105
+  }
+}

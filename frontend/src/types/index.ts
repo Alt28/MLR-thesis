@@ -5,19 +5,26 @@ export interface ResearchConfig {
   test_size: number; random_state: number; split_method: 'random' | 'grouped'; split_group_column: string;
   iqr_multiplier: number; iqr_columns: string[];
   pairwise_interactions: string[][]; higher_order_interactions: string[][];
+  center_interactions?: boolean; hierarchical_interactions?: boolean; cv_folds?: number; cv_repeats?: number;
   category_severity: Record<string, Record<string, number>>;
   numerical_directions: Record<string, 'higher' | 'lower' | null>;
   vehicle_frequency_unit: string; route_distance_unit: string;
   research_notes?: Record<string, string>;
   wait_thresholds: number[]; station_thresholds: number[]; negative_wait_rule: string;
+  severity_basis?: 'adjusted' | 'marginal';
 }
 export interface Experiment {
   id: string; name: string; created: string; revision: number;
   status: 'ready' | 'running' | 'partial' | 'complete' | 'error'; error: string | null;
   approved: boolean; config: ResearchConfig; records: number; training: number; reviewed_training: number;
   test: number; flagged: number; reviewed: number; metadata: string[]; trained: string[];
-  metrics: { Model: string; MSE: number; RMSE: number }[];
+  metrics: { Model: string; MSE: number; RMSE: number; MAE?: number | null; R2?: number | null }[];
   mode_metrics: Row[];
+  validation?: {
+    available: boolean; heldout: Row[]; cv_summary: Row[]; cv_test: Row[];
+    cv_design: {design?: string; folds?: number; repeats?: number; fitted_folds?: number};
+    classification: Row[]; notes: string[];
+  };
   station_aggregation: {
     available: boolean; grouping_column: string; reason: string | null;
     station_count: number; ungrouped_records: number; aggregation?: string;

@@ -160,11 +160,15 @@ class ExperimentStore:
         distribution = combined.predictions["Overall Station Classification"].value_counts().to_dict() if combined is not None else {}
         export = Path(s["export_dir"]) if s["export_dir"] else None
         study = getattr(combined, "study", {}) if combined is not None else {}
+        validation = (getattr(combined, "validation", {}) or {}) if combined is not None else {}
+
+        def checks(name):
+            return records(validation[name]) if isinstance(validation.get(name), pd.DataFrame) else []
         return dict(id=s["id"], name=s["name"], created=s["created"], revision=s["revision"], status=s["status"], error=s["error"],
                     approved=s["approved"], config=s["config"], records=len(p.original), training=len(p.training), reviewed_training=len(train),
                     test=len(p.test), flagged=int(p.flags[ROW_ID].nunique()), reviewed=len(s["decisions"]),
                     metadata=[c for c in p.original.columns if c not in (*PREDICTORS, TARGET, ROW_ID)],
-                    trained=list(s["partials"]), metrics=metric_rows, comparison=records(combined.comparison) if combined is not None else [],
+                    trained=list(s["partials"]), metrics=records(pd.DataFrame(metric_rows)), comparison=records(combined.comparison) if combined is not None else [],
                     conclusion=combined.conclusion if combined is not None else None,
                     warnings=combined.warnings if combined is not None else list(dict.fromkeys(w for m in s["partials"].values() for w in m.warnings)), distribution=distribution,
                     evidence=records(classifier.evidence), thresholds=records(classifier.thresholds.reset_index()),
@@ -181,6 +185,10 @@ class ExperimentStore:
                         "station_count": 0, "ungrouped_records": len(p.test),
                     },
                     research_protocol=study.get("metadata", {}),
+                    validation=dict(available=bool(validation), heldout=checks("heldout_significance"),
+                                    cv_summary=checks("cv_summary"), cv_test=checks("cv_significance"),
+                                    cv_design=validation.get("cv_metadata", {}),
+                                    classification=checks("classification_agreement"), notes=validation.get("notes", [])),
                     export_ready=export is not None and export.exists() and not classification_stale)
 
     def table(self, sid, name, search="", offset=0, limit=25, transport_mode="all"):
@@ -297,6 +305,8 @@ class ExperimentStore:
                 enhanced = new_partials["Enhanced MLR"]
                 combined.models.update(enhanced.models)
                 combined.diagnostics.extend(enhanced.diagnostics)
+                combined.inference = {**getattr(combined, "inference", {}), **getattr(enhanced, "inference", {})}
+                combined.vif = {**getattr(combined, "vif", {}), **getattr(enhanced, "vif", {})}
                 combined.warnings = list(dict.fromkeys(combined.warnings + enhanced.warnings))
                 result = run_experiment(s["prepared"], s["decisions"], fitted_models=combined)
                 export_dir = export_experiment(result, s["folder"] / "runs")

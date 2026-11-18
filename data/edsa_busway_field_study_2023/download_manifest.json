@@ -1,0 +1,24 @@
+{
+  "source_url": "https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf",
+  "retrieved_date": "2026-11-18",
+  "source_filename": "TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf",
+  "source_sha256": "dc83217327b82f7b75784aa37a2dd58e3bc38162809d5935f5569b2de2710362",
+  "prepared_files": {
+    "edsa_busway_dwell_means_2023.csv": {
+      "sha256": "5aab68f4558966823898b28664e816e2f80c62f97e98dd1666ac0ddee1626fe1",
+      "bytes": 13463
+    },
+    "edsa_busway_reported_bus_counts.csv": {
+      "sha256": "ca552e6d1ec2771e51da7aaa3fe2b01f819bdc36830dfcb7d2d06abbc676d9bb",
+      "bytes": 2386
+    },
+    "edsa_busway_survey_coverage_2023.csv": {
+      "sha256": "d08382aab5217ea13a5389ceab759ecccc65d4b7400bfbbc4696bbc3ce469d41",
+      "bytes": 1305
+    },
+    "EDSA_BUSWAY_SURVEY_REFERENCE_2023.xlsx": {
+      "sha256": "a445ef31ccadb23d7e9da44a8cda5486681a69b78ff869f93139defcb3d7fd31",
+      "bytes": 13278
+    }
+  }
+}

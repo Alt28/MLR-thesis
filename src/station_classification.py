@@ -1,11 +1,15 @@
 ﻿"""Seven-factor classification fitted exclusively on reviewed training data."""
+import math
 import numpy as np
 import pandas as pd
+from scipy import stats
 from .config import CATEGORICAL, NUMERICAL, PREDICTORS, TARGET, LABELS
 
-CLASSIFICATION_VERSION = 2
+CLASSIFICATION_VERSION = 3
 INSUFFICIENT = "Insufficient Variation for Classification"
 UNDEFINED = "Requires Researcher Decision"
+NO_EFFECT = "No detectable adjusted effect"
+EFFECT_ALPHA = 0.05
 # Both measured predictors need a documented unit before any station label is issued.
 REQUIRED_UNITS = {"Vehicle Frequency": "vehicle_frequency_unit", "Route Distance": "route_distance_unit"}
 SEVERITIES = ("Normal", "Minor", "Moderate", "Severe")
@@ -100,6 +104,55 @@ def variation_status(values, quartiles):
     return INSUFFICIENT if np.ptp(quartiles) <= q_tolerance else "Valid"
 
 
+def adjusted_effects(training, config):
+    """Additive OLS on reviewed training rows: each factor's effect with the other five held constant.
+
+    Returns per-factor coefficients (minutes) and a partial F-test p-value, or a reason when the fit is unusable.
+    """
+    from .interaction_terms import FeatureBuilder
+    try:
+        builder = FeatureBuilder(config).fit(training)
+        x = builder.transform(training)
+    except ValueError as exc:
+        return {"available": False, "reason": str(exc), "factors": {}}
+    design = np.column_stack([np.ones(len(x)), x.to_numpy(dtype=float)])
+    y = training[TARGET].to_numpy(dtype=float)
+    n, k = design.shape
+    if np.linalg.matrix_rank(design) < k or n - k <= 0:
+        return {"available": False, "reason": "The additive design is rank-deficient or has too few training rows.", "factors": {}}
+    beta = np.linalg.lstsq(design, y, rcond=None)[0]
+    rss = float(np.sum((y - design @ beta) ** 2))
+    df = n - k
+    columns = list(x.columns)
+    factors = {}
+    for col in PREDICTORS:
+        names = builder.blocks[col]
+        if not names:
+            continue
+        positions = [1 + columns.index(name) for name in names]
+        reduced = np.delete(design, positions, axis=1)
+        reduced_rss = float(np.sum((y - reduced @ np.linalg.lstsq(reduced, y, rcond=None)[0]) ** 2))
+        gain = max(reduced_rss - rss, 0.0)
+        if rss > 0:
+            p_value = float(stats.f.sf((gain / len(names)) / (rss / df), len(names), df))
+        else:
+            p_value = 0.0 if gain > 0 else 1.0
+        if col in NUMERICAL:
+            factors[col] = {"coefficient": float(beta[positions[0]]), "p_value": p_value}
+        else:
+            effects = {builder.categories[col][0]: 0.0}
+            effects.update({category: float(beta[p]) for category, p in zip(builder.categories[col][1:], positions)})
+            factors[col] = {"effects": effects, "p_value": p_value}
+    return {"available": True, "reason": None, "factors": factors, "residual_df": df}
+
+
+def scaled_score(effect, low, high):
+    """0 for the most favourable category, 3 for the least, proportional (rounded half up) in between."""
+    if high - low <= 0:
+        return 0
+    return int(min(3, math.floor(3 * (effect - low) / (high - low) + 0.5)))
+
+
 class StationClassifier:
     def __init__(self, config):
         self.config = config
@@ -117,8 +170,14 @@ class StationClassifier:
         self.thresholds.index.name = "Factor"
         self.target_quartiles = training[TARGET].quantile([.25, .5, .75], interpolation="linear").to_numpy(dtype=float)
         self.target_status = variation_status(training[TARGET], self.target_quartiles)
+        self.basis = getattr(self.config, "severity_basis", "adjusted")
+        self.adjusted = (adjusted_effects(training, self.config) if self.basis == "adjusted" and self.target_status == "Valid"
+                         else {"available": False, "reason": "Marginal basis selected." if self.basis == "marginal"
+                               else "Actual waiting time has insufficient variation.", "factors": {}})
+        adjusted_factors = self.adjusted["factors"] if self.adjusted["available"] else {}
         self.directions = {}
         self.factor_status = {}
+        self.no_effect = set()
         for col in NUMERICAL:
             q = self.thresholds.loc[col, ["Q1", "Q2", "Q3"]].to_numpy(dtype=float)
             status = variation_status(training[col], q)
@@ -128,17 +187,32 @@ class StationClassifier:
                 if np.isfinite(candidate): correlation = candidate
             configured = self.config.numerical_directions.get(col)
             direction = configured
-            source = "Researcher configuration" if configured else "Training Pearson correlation"
-            if not configured and correlation is not None and abs(correlation) > CORRELATION_ZERO_TOLERANCE:
-                direction = "higher" if correlation > 0 else "lower"
-            if status == "Valid" and direction is None:
+            adjusted = adjusted_factors.get(col)
+            if configured:
+                source = "Researcher configuration"
+            elif adjusted is not None and status == "Valid":
+                if adjusted["p_value"] >= EFFECT_ALPHA:
+                    source = f"{NO_EFFECT} (p = {adjusted['p_value']:.3g}); every value scores 0"
+                    self.no_effect.add(col)
+                else:
+                    source = "Adjusted MLR coefficient (other factors held constant)"
+                    direction = "higher" if adjusted["coefficient"] > 0 else "lower"
+            else:
+                source = "Training Pearson correlation"
+                if correlation is not None and abs(correlation) > CORRELATION_ZERO_TOLERANCE:
+                    direction = "higher" if correlation > 0 else "lower"
+            if status == "Valid" and direction is None and col not in self.no_effect:
                 status = UNDEFINED
             # Even a configured direction cannot make constant quartiles meaningful.
             self.directions[col] = direction if status == "Valid" else None
+            if status != "Valid":
+                self.no_effect.discard(col)
             self.factor_status[col] = status
             self.thresholds.loc[col, "Direction"] = self.directions[col]
             self.thresholds.loc[col, "Configured Direction"] = configured
             self.thresholds.loc[col, "Direction Source"] = source
+            self.thresholds.loc[col, "Adjusted MLR Coefficient"] = adjusted["coefficient"] if adjusted else None
+            self.thresholds.loc[col, "Adjusted Effect p-value"] = adjusted["p_value"] if adjusted else None
             self.thresholds.loc[col, "Training Pearson Correlation"] = correlation
             self.thresholds.loc[col, "Status"] = status
             self.thresholds.loc[col, "Training Unique Values"] = training[col].nunique()
@@ -157,14 +231,27 @@ class StationClassifier:
         for row in rows:
             col, category = row["Factor"], row["Category"]
             override = self.config.category_severity.get(col, {}).get(category)
-            derived = (int(numerical_severity([row["Mean Actual Wait"]], self.target_quartiles)[0])
-                       if row["Training Count"] and self.target_status == "Valid" and training[col].nunique() > 1 else None)
+            adjusted = adjusted_factors.get(col)
+            effect = p_value = None
+            usable = row["Training Count"] and self.target_status == "Valid" and training[col].nunique() > 1
+            if adjusted is not None and usable and category in adjusted["effects"]:
+                effects = adjusted["effects"]
+                low, high = min(effects.values()), max(effects.values())
+                effect, p_value = effects[category] - low, adjusted["p_value"]
+                no_effect = p_value >= EFFECT_ALPHA
+                derived = 0 if no_effect else scaled_score(effects[category], low, high)
+                derived_source = (f"{NO_EFFECT} (p = {p_value:.3g})" if no_effect
+                                  else "Adjusted MLR effect (other factors held constant)")
+            else:
+                derived = int(numerical_severity([row["Mean Actual Wait"]], self.target_quartiles)[0]) if usable else None
+                derived_source = "Training category mean"
             score, status = override if override is not None else derived, "Valid"
-            source = "Researcher configuration" if override is not None else "Training category mean"
+            source = "Researcher configuration" if override is not None else derived_source
             if score is None: status = INSUFFICIENT
             if score is not None: self.category_mappings[col][category] = score
             row.update({"Q1": self.target_quartiles[0], "Q2": self.target_quartiles[1], "Q3": self.target_quartiles[2],
                         "Threshold Variable": TARGET, "Direction": "higher", "Mapping Source": source,
+                        "Adjusted Effect vs Most Favourable (min)": effect, "Adjusted Effect p-value": p_value,
                         "Status": status, "Severity Score": score, "Derived Severity Score": derived,
                         "Severity": SEVERITIES[score] if score is not None else status})
         self.evidence = pd.DataFrame(rows)
@@ -174,7 +261,16 @@ class StationClassifier:
             "actual_wait_quartiles": dict(zip(("Q1", "Q2", "Q3"), self.target_quartiles.tolist())),
             "actual_wait_variation_status": self.target_status,
             "category_mappings": self.category_mappings, "numerical_directions": self.directions,
-            "direction_method": "Configured direction takes precedence; otherwise training Pearson correlation sign. No significance claim.",
+            "severity_basis": self.basis,
+            "adjusted_model": {"available": self.adjusted["available"], "reason": self.adjusted["reason"],
+                               "effect_alpha": EFFECT_ALPHA,
+                               "factor_p_values": {c: f["p_value"] for c, f in adjusted_factors.items()},
+                               "no_detectable_effect": sorted(self.no_effect | {
+                                   c for c, f in adjusted_factors.items() if c in CATEGORICAL and f["p_value"] >= EFFECT_ALPHA})},
+            "direction_method": ("Configured direction takes precedence; otherwise the sign of the additive OLS coefficient "
+                                 "(other factors held constant). A factor whose partial F-test p-value is at least "
+                                 f"{EFFECT_ALPHA} has no detectable effect and scores 0. Falls back to the training Pearson "
+                                 "correlation sign when the additive fit is unavailable or the marginal basis is selected."),
             "variation_relative_tolerance": VARIATION_RTOL, "variation_absolute_tolerance": VARIATION_ATOL,
             "correlation_zero_tolerance": CORRELATION_ZERO_TOLERANCE,
             "measurement_units": {factor: str(getattr(self.config, field, "")).strip()
@@ -195,9 +291,12 @@ class StationClassifier:
             output[f"{col} Category Mean"] = observations[col].map(evidence["Mean Actual Wait"])
         for col in NUMERICAL:
             direction = self.directions[col]
-            output[f"{col} Severity"] = (
-                numerical_severity(observations[col], self.thresholds.loc[col, ["Q1", "Q2", "Q3"]], direction)
-                if direction else np.nan)
+            if col in getattr(self, "no_effect", set()):
+                output[f"{col} Severity"] = 0.0
+            else:
+                output[f"{col} Severity"] = (
+                    numerical_severity(observations[col], self.thresholds.loc[col, ["Q1", "Q2", "Q3"]], direction)
+                    if direction else np.nan)
             output[f"{col} Classification Status"] = self.factor_status[col]
         output["Waiting Time Used for Classification"] = np.maximum(0, predictions)
         output["Predicted Waiting Time Severity"] = waiting_time_severity(predictions, self.config.wait_thresholds)

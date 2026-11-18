@@ -21,6 +21,16 @@ function factorRule(s: Experiment, row: Row, factor: string, score: number | nul
     const mean = evidence['Training Count'] ? `Training category mean = ${format(evidence['Mean Actual Wait'], 6)} minutes.` : 'No training observations for this configured category.'
     const quartiles = `Training Actual Waiting Time Q1 = ${format(evidence.Q1, 6)} · Q2 (median) = ${format(evidence.Q2, 6)} · Q3 = ${format(evidence.Q3, 6)} minutes.`
     const configured = evidence['Mapping Source'] === 'Researcher configuration'
+    const mappingSource = String(evidence['Mapping Source'] ?? '')
+    const adjusted = mappingSource.startsWith('Adjusted MLR') || mappingSource.startsWith('No detectable adjusted effect')
+    if (adjusted && !configured) {
+      const effect = `${factor} effect for “${category}” = ${format(evidence['Adjusted Effect vs Most Favourable (min)'], 4)} minutes above the most favourable category, with the other factors held constant (factor p = ${format(evidence['Adjusted Effect p-value'], 4)}).`
+      const source = mappingSource.startsWith('No detectable')
+        ? `${effect} No detectable effect on waiting time, so every ${factor} category scores 0.`
+        : `${effect} Most favourable category = 0, least favourable = 3, others proportional. ${mean}`
+      if (score == null) return {condition: String(row[`${factor} Classification Status`] || DECISION), source}
+      return {condition: `“${category}” → ${SEVERITIES[score]} / ${score}`, source}
+    }
     const source = `${mean} ${quartiles} ${configured ? 'Researcher-approved category mapping; overrides the derived score.' : 'Training category mean compared with training waiting-time quartiles; higher mean → higher severity.'}`
     if (score == null) return {condition: String(row[`${factor} Classification Status`] || DECISION), source}
     const ranges = [
@@ -47,6 +57,12 @@ function factorRule(s: Experiment, row: Row, factor: string, score: number | nul
   }
   const quartiles = `Training Q1 = ${format(q.Q1, 6)} · Q2 (median) = ${format(q.Q2, 6)} · Q3 = ${format(q.Q3, 6)}`
   if (q.Status === INSUFFICIENT) return {condition: INSUFFICIENT, source: `${quartiles}. Constant/effectively constant values or collapsed quartiles; no severity assigned, even with a configured direction.`}
+  const adjustedNote = typeof q['Adjusted MLR Coefficient'] === 'number'
+    ? ` Adjusted coefficient = ${format(q['Adjusted MLR Coefficient'], 6)} (p = ${format(q['Adjusted Effect p-value'], 4)}); raw Pearson r = ${format(q['Training Pearson Correlation'], 6)}.`
+    : ` Training Pearson r = ${format(q['Training Pearson Correlation'], 6)}.`
+  if (String(q['Direction Source'] ?? '').startsWith('No detectable adjusted effect') && score === 0) {
+    return {condition: 'No detectable effect → Normal / 0', source: `${quartiles}. ${q['Direction Source']}.${adjustedNote}`}
+  }
   if (score == null || !['higher', 'lower'].includes(String(q.Direction))) {
     return {condition: DECISION, source: `${quartiles}. No configured direction or usable training relationship with Actual Waiting Time.`}
   }
@@ -57,7 +73,7 @@ function factorRule(s: Experiment, row: Row, factor: string, score: number | nul
     `${format(q.Q2, 6)} (Q2) < value ≤ ${format(q.Q3, 6)} (Q3)`,
     `Value > ${format(q.Q3, 6)} (Q3)`,
   ]
-  return {condition: ranges[bin], source: `${quartiles}. ${q.Direction === 'lower' ? 'Lower' : 'Higher'} values → higher severity. ${q['Direction Source']}; training Pearson r = ${format(q['Training Pearson Correlation'], 6)}.`}
+  return {condition: ranges[bin], source: `${quartiles}. ${q.Direction === 'lower' ? 'Lower' : 'Higher'} values → higher severity. ${q['Direction Source']}.${adjustedNote}`}
 }
 
 export function StationCondition({s, row, summaryOnly = false}: {s: Experiment; row: Row; summaryOnly?: boolean}) {

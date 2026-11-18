@@ -4,6 +4,7 @@ from hashlib import sha256
 from importlib.metadata import version
 from pathlib import Path
 import json
+import math
 import platform
 import uuid
 import joblib
@@ -11,6 +12,21 @@ import pandas as pd
 from .config import ROW_ID
 from .visualization import save_figures
 from .irregularity_detection import review_bundle
+from .interaction_terms import interaction_specification
+
+VALIDATION_TABLES = ("vif", "heldout_significance", "cv_summary", "cv_significance", "cv_folds",
+                     "classification_agreement", "classification_confusion")
+
+
+def json_safe(value):
+    """Replace NaN and infinity with null so manifests stay strict JSON."""
+    if isinstance(value, dict):
+        return {k: json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(v) for v in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
 
 
 def spreadsheet_safe(frame):
@@ -36,17 +52,17 @@ def result_tables(result):
         "coefficients": coefficients,
         "interaction_coefficients": coefficients[coefficients.Type.isin(["pairwise", "higher-order"])],
         "selected_interactions": pd.DataFrame([
-            {"Order": order, "Predictors": " × ".join(term), "Main Effects Retained": True}
-            for order, terms in (("pairwise", prepared.config.pairwise_interactions),
-                                 ("higher-order", prepared.config.higher_order_interactions))
-            for term in terms
-        ], columns=["Order", "Predictors", "Main Effects Retained"]),
+            {"Order": term["order"], "Predictors": " × ".join(term["factors"]), "Main Effects Retained": True,
+             "Added for Hierarchy": term["added_for_hierarchy"]}
+            for term in interaction_specification(prepared.config)
+        ], columns=["Order", "Predictors", "Main Effects Retained", "Added for Hierarchy"]),
         "iqr_flags": flags,
         "iqr_bounds": prepared.iqr_bounds.reset_index(),
         "review_audit": result.audit,
         "category_evidence": result.classifier.evidence,
         "severity_thresholds": result.classifier.thresholds.reset_index(),
         "category_encoding": result.models.features.encoding_table(),
+        "interaction_centering": result.models.features.centering_table(),
         "model_diagnostics": pd.DataFrame(result.models.diagnostics),
         "split_membership": split,
         "original_training": prepared.training,
@@ -61,6 +77,10 @@ def result_tables(result):
         tables.update(study_metrics=study["metrics"], study_comparisons=study["comparisons"],
                       study_predictions=study["predictions"], original_coefficients=original_coefficients,
                       original_model_checks=pd.DataFrame(study["original_model"].diagnostics))
+    validation = getattr(result, "validation", {}) or {}
+    for name in VALIDATION_TABLES:
+        if isinstance(validation.get(name), pd.DataFrame):
+            tables[name] = validation[name]
     provenance = getattr(prepared, "provenance", {})
     if provenance:
         tables["source_notes"] = pd.DataFrame(provenance.get("workbook_notes", []))
@@ -137,12 +157,32 @@ def methodology_report(result, manifest):
         "- Categorical predictors use training-only reference-category indicators:",
         block(result.models.features.encoding_table()),
     ]
-    terms = [(" × ".join(term), order) for order, group in
-             (("pairwise", config.pairwise_interactions), ("higher-order", config.higher_order_interactions))
-             for term in group]
+    specification = interaction_specification(config)
+    terms = [(" × ".join(t["factors"]), t["order"]) for t in specification if not t["added_for_hierarchy"]]
+    added = [" × ".join(t["factors"]) for t in specification if t["added_for_hierarchy"]]
     text += [f"- Enhanced-model interaction terms ({len(terms)}): " +
              ("; ".join(f"{name} ({order})" for name, order in terms) or "none selected")]
+    text.append(
+        f"- Hierarchy principle: lower-order components of each higher-order term are included automatically ({'; '.join(added)}). "
+        "With every lower-order term present, centering only reparametrizes the model, so predictions do not depend on "
+        "where each variable's zero lies." if added else
+        "- No lower-order interaction components were added." + ("" if getattr(config, "hierarchical_interactions", False) else
+                                                                  " Hierarchy enforcement is turned off."))
+    centering = result.models.features.centering_table()
+    if len(centering):
+        text += ["- Numerical factors are centered at their training means before interaction products are formed "
+                 "(main effects stay in original units). Main-effect coefficients of the enhanced model therefore describe "
+                 "the effect at the training mean of the interacting predictors.", block(centering)]
+    else:
+        text.append("- Interaction products use uncentered predictor values.")
     text += ["- Fitted design diagnostics:", block(pd.DataFrame(result.models.diagnostics))]
+    vif = result.models.vif_table()
+    if len(vif):
+        text += ["- Variance inflation factors (VIF = 1 / (1 − R²) of each term regressed on the others; above 10 indicates "
+                 "strong multicollinearity):", block(vif)]
+    text += ["- OLS coefficients with classical standard errors, t statistics, two-sided p-values, and 95% confidence "
+             "intervals (valid under the usual OLS assumptions of independent, constant-variance errors):",
+             block(result.models.coefficients())]
 
     text += ["## 5. Experiment arms and evaluation", ""]
     if study:
@@ -155,11 +195,36 @@ def methodology_report(result, manifest):
         "- Main reported comparison (Traditional vs Enhanced MLR on reviewed training rows):",
         block(result.metrics), block(result.comparison),
         f"- Conclusion recorded for this run: {result.conclusion}",
-        "- Error = actual − predicted. MSE and RMSE use raw predictions, including negative values.",
+        "- Error = actual − predicted. MSE, RMSE, and MAE use raw predictions, including negative values. "
+        "R2 is the held-out coefficient of determination (1 − SSE/SST on the test observations); it can be negative.",
     ]
     if len(result.mode_metrics):
         text += ["- Bus/train metrics are subsets of the same pooled model's test predictions:",
                  block(result.mode_metrics)]
+    validation = getattr(result, "validation", {}) or {}
+    if "heldout_significance" in validation:
+        text += [
+            "### 5.1 Paired tests on the held-out observations",
+            "",
+            "- Each test observation contributes the difference of its squared errors under two arms (first − second). "
+            "The Wilcoxon signed-rank test and the paired t-test check whether that difference is centered at zero; α = 0.05.",
+            "- Observations from the same station or period may be dependent, which these tests do not model.",
+            block(validation["heldout_significance"]),
+        ]
+    if "cv_summary" in validation:
+        meta = validation.get("cv_metadata", {})
+        text += [
+            "### 5.2 Repeated k-fold cross-validation (reviewed training partition only)",
+            "",
+            f"- Design: {meta.get('design')}, {meta.get('folds')} folds × {meta.get('repeats')} repeats = "
+            f"{meta.get('fitted_folds')} fitted folds, seed {meta.get('seed')}. The held-out test observations are never used.",
+            "- In every fold the encoding, centering means, and OLS coefficients are re-estimated on that fold's training rows only. "
+            "IQR review decisions are taken as already recorded on the full training partition.",
+            "- The corrected resampled t-test (Nadeau & Bengio, 2003) adjusts the fold-level variance for overlapping training sets.",
+            block(validation["cv_summary"]), block(validation["cv_significance"]),
+        ]
+    for note in validation.get("notes", []):
+        text.append(f"- {note}")
 
     text += [
         "## 6. Multi-Factor Threshold-Based Station Classification",
@@ -172,12 +237,24 @@ def methodology_report(result, manifest):
         f"[{config.station_thresholds[0]}, {config.station_thresholds[1]}) Minor Delay; "
         f"[{config.station_thresholds[1]}, {config.station_thresholds[2]}) Moderate Delay; "
         f"[{config.station_thresholds[2]}, 3] Severe Delay.",
-        "- Numerical factors use reviewed-training quartiles with linear interpolation. Direction comes from the "
-        "configured setting, otherwise from the sign of the training Pearson correlation with Actual Waiting Time.",
+        "- Numerical factors use reviewed-training quartiles with linear interpolation (≤ Q1 = 0, ≤ Q2 = 1, ≤ Q3 = 2, above = 3; "
+        "reversed for lower-is-worse)." + (
+            " Direction comes from the configured setting, otherwise from the sign of that factor's coefficient in an additive "
+            "OLS fit on the reviewed training rows (all six factors together, so each effect is measured with the others held "
+            f"constant). A factor whose partial F-test p-value is at least {rules.get('adjusted_model', {}).get('effect_alpha', 0.05)} "
+            "has no detectable effect and scores 0 for every value."
+            if getattr(classifier, "basis", "marginal") == "adjusted" and rules.get("adjusted_model", {}).get("available") else
+            " Direction comes from the configured setting, otherwise from the sign of the training Pearson correlation with "
+            "Actual Waiting Time."),
         block(classifier.thresholds.reset_index()),
-        "- Categorical factors compare each training category mean against the reviewed-training waiting-time quartiles "
-        f"(Q1 = {classifier.target_quartiles[0]:.6g}, Q2 = {classifier.target_quartiles[1]:.6g}, Q3 = {classifier.target_quartiles[2]:.6g}); "
-        "a documented researcher mapping overrides the derived score.",
+        ("- Categorical factors without a researcher mapping are scored from the same additive OLS fit: each category's "
+         "effect in minutes is measured against the most favourable category of that factor, the most favourable scores 0, "
+         "the least favourable scores 3, and the rest are proportional (rounded half up). A factor with no detectable "
+         "effect (partial F-test p ≥ 0.05) scores 0 for every category."
+         if getattr(classifier, "basis", "marginal") == "adjusted" and rules.get("adjusted_model", {}).get("available") else
+         "- Categorical factors compare each training category mean against the reviewed-training waiting-time quartiles "
+         f"(Q1 = {classifier.target_quartiles[0]:.6g}, Q2 = {classifier.target_quartiles[1]:.6g}, Q3 = {classifier.target_quartiles[2]:.6g}); "
+         "a documented researcher mapping overrides the derived score."),
         block(classifier.evidence),
         "- Negative predictions keep their raw value in evaluation; only the classification input is floored at zero.",
         f"- Label distribution across the {len(result.predictions)} test observations:",
@@ -185,6 +262,15 @@ def methodology_report(result, manifest):
         f"- Unresolved observations (Requires Researcher Decision): {unresolved}. "
         "They stay in the denominator and their reasons are exported per observation.",
     ]
+    if "classification_agreement" in validation:
+        text += [
+            "- Classification agreement check: each test observation is classified twice, once with the Enhanced MLR "
+            "predicted wait and once with its actual wait; the other six factors are identical. This shows how prediction "
+            "error changes the station condition. It does not validate the thresholds against operational standards.",
+            block(validation["classification_agreement"]),
+            "- Rows: label from the actual wait. Columns: label from the predicted wait.",
+            block(validation["classification_confusion"]),
+        ]
     aggregation = result.station_aggregation or {}
     text.append(
         f"- Station summary grouped by `{aggregation.get('grouping_column')}`: {aggregation.get('station_count', 0)} stations, "
@@ -242,10 +328,11 @@ def export_experiment(result, output_root="outputs"):
     (directory / "review_decisions.json").write_text(json.dumps(review_bundle(result.prepared, decisions), indent=2), encoding="utf-8")
     config_text = json.dumps(config, indent=2, ensure_ascii=False)
     (directory / "config.json").write_text(config_text, encoding="utf-8")
-    packages = {name: version(name) for name in ("numpy", "pandas", "scikit-learn", "matplotlib", "openpyxl", "joblib")}
+    packages = {name: version(name) for name in ("numpy", "pandas", "scikit-learn", "scipy", "matplotlib", "openpyxl", "joblib")}
     source_root = Path(__file__).resolve().parent.parent
     code_paths = [source_root / "main.py", *sorted((source_root / "src").glob("*.py")), *sorted((source_root / "backend").rglob("*.py"))]
     code_hashes = {str(p.relative_to(source_root)): sha256(p.read_bytes()).hexdigest() for p in code_paths}
+    validation = getattr(result, "validation", {}) or {}
     manifest = {
         "run_id": run_id, "created_utc": datetime.now(timezone.utc).isoformat(),
         "source": result.prepared.source, "source_sha256": result.prepared.source_hash,
@@ -255,8 +342,16 @@ def export_experiment(result, output_root="outputs"):
         "quantile_interpolation": "linear", "metrics_use_raw_predictions": True,
         "route_distance_training_pearson_correlation": result.classifier.distance_correlation,
         "classification_rules": rules, "research_protocol": study.get("metadata", {}), "data_provenance": provenance,
-        "mode_metrics": result.mode_metrics.to_dict(orient="records"),
+        "mode_metrics": json_safe(result.mode_metrics.to_dict(orient="records")),
         "station_aggregation": result.station_aggregation,
+        "statistical_checks": json_safe({
+            "center_interactions": result.prepared.config.center_interactions,
+            "heldout_significance": validation["heldout_significance"].to_dict(orient="records") if "heldout_significance" in validation else [],
+            "cross_validation": validation.get("cv_metadata", {}),
+            "cv_significance": validation["cv_significance"].to_dict(orient="records") if "cv_significance" in validation else [],
+            "classification_agreement": validation["classification_agreement"].to_dict(orient="records") if "classification_agreement" in validation else [],
+            "notes": validation.get("notes", []),
+        }),
         "comparison_conclusion": result.conclusion, "warnings": result.warnings,
     }
     joblib.dump({"original_baseline": study.get("original_model"), "models": result.models, "classifier": result.classifier, "config": config, "manifest": manifest}, directory / "models.joblib")
@@ -268,6 +363,13 @@ def export_experiment(result, output_root="outputs"):
         summary += "\n\n## Controlled comparisons\n\n" + study["metrics"].to_string(index=False)
         summary += "\n\n" + study["comparisons"].to_string(index=False)
         summary += "\n\nA vs B examines recorded review decisions; B vs C examines interactions; A vs C examines the combined workflow. Positive reductions mean lower error for the second arm. If training records are unchanged, no review benefit is demonstrated.\n"
+    if "heldout_significance" in validation:
+        columns = ["Comparison", "Test", "p-value", "Result"]
+        summary += "\n\n## Statistical checks\n\n" + validation["heldout_significance"][columns].to_string(index=False)
+        if "cv_significance" in validation:
+            summary += "\n\n" + validation["cv_summary"].to_string(index=False)
+            summary += "\n\n" + validation["cv_significance"][["Test", "Folds", "p-value", "Result"]].to_string(index=False)
+        summary += "\n\nThese tests describe variability within this dataset; they do not establish real-world validity.\n"
     summary += "\n\n## Data source\n\n" + provenance.get("message", "Data source not documented.")
     summary += "\n## Review and limitations\n\n" + ("\n".join("- " + w for w in result.warnings) or "No automatic diagnostic warnings.")
     summary += "\n\nRaw predictions are retained for evaluation. Negative enhanced predictions are floored at zero for classification only. Error columns mean actual minus predicted. Text beginning with spreadsheet formula prefixes is escaped in CSV/Excel exports.\n"

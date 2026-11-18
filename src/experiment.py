@@ -12,6 +12,7 @@ from .evaluation import compare_models, metrics
 from .station_classification import StationClassifier, aggregate_station_scores
 from .research_protocol import source_declarations, controlled_comparison
 from .transport_metadata import transport_labels
+from .validation import validation_report
 
 
 @dataclass
@@ -43,6 +44,7 @@ class ExperimentResult:
     mode_metrics: pd.DataFrame = field(default_factory=pd.DataFrame)
     station_summary: pd.DataFrame = field(default_factory=pd.DataFrame)
     station_aggregation: dict = field(default_factory=dict)
+    validation: dict = field(default_factory=dict)
 
 
 def prepare_experiment(source, config):
@@ -85,7 +87,7 @@ def run_experiment(prepared, decisions=None, fitted_models=None):
                 **metrics(prepared.test.loc[selected, TARGET],
                           predictions.loc[selected, f"{prefix} Predicted Waiting Time"]),
             })
-    mode_metrics = pd.DataFrame(mode_rows, columns=["Transport Mode", "Model", "Test Rows", "MSE", "RMSE"])
+    mode_metrics = pd.DataFrame(mode_rows, columns=["Transport Mode", "Model", "Test Rows", "MSE", "RMSE", "MAE", "R2"])
     station_summary, station_aggregation = aggregate_station_scores(output, config.station_thresholds)
     warnings = list(models.warnings)
     unreviewed = int(audit.Action.eq("retain_unreviewed").sum())
@@ -112,9 +114,12 @@ def run_experiment(prepared, decisions=None, fitted_models=None):
         warnings.append(provenance.get("message", "Data source not documented."))
     if not study["metadata"]["review_changed_training_data"]:
         warnings.append("IQR review did not change training data; no benefit from correction/exclusion is demonstrated by this run.")
-    warnings.append(f"Evaluation uses one fixed {'grouped' if config.split_method == 'grouped' else 'random'} holdout of {len(prepared.test)} observations. Do not infer statistical significance or real-world validity from this run alone.")
+    validation = validation_report(prepared, train, models, classifier, classified, study)
+    warnings.extend(validation["notes"])
+    warnings.append(f"Held-out evaluation uses one fixed {'grouped' if config.split_method == 'grouped' else 'random'} holdout of {len(prepared.test)} observations. "
+                    "Paired tests and repeated cross-validation describe variability within this dataset only; they do not establish real-world validity.")
     return ExperimentResult(prepared, train, audit, models, classifier, output, evaluation, comparison,
-                            conclusion, warnings, study, mode_metrics, station_summary, station_aggregation)
+                            conclusion, warnings, study, mode_metrics, station_summary, station_aggregation, validation)
 
 
 def split_warnings(prepared):

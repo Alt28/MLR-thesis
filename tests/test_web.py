@@ -77,7 +77,7 @@ def test_complete_web_workflow(web, fixture_data):
     assert web.post(base + "/train", json={"revision": 2}).status_code == 202
     s = wait_for_job(web, s["id"])
     assert s["status"] == "complete", s.get("error")
-    assert len(s["metrics"]) == 2 and len(s["figures"]) == 8
+    assert len(s["metrics"]) == 2 and len(s["figures"]) == 12
     assert len(s["mode_metrics"]) == 4
     assert s["station_aggregation"]["available"] and s["station_aggregation"]["station_count"] == 2
     station_rows = web.get(base + "/tables/station_summary").json()

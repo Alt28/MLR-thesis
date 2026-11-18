@@ -1,0 +1,38 @@
+{
+  "checked_source_cells": 781200,
+  "excluded_outside_month_rows": {
+    "hourly_2023": 168,
+    "daily_2023": 7,
+    "hourly_2024": 144,
+    "daily_2024": 6,
+    "hourly_2025": 168,
+    "daily_2025": 7
+  },
+  "annual_entry_totals": {
+    "2023": "129030158",
+    "2024": "135885336",
+    "2025": "141626536"
+  },
+  "official_annual_comparison": {
+    "url": "https://www.dotrmrt3.gov.ph/news/mrt-3-logs-135-million-riders-in-2024",
+    "2023": "Match: 129030158",
+    "2024": "Match: 135885336",
+    "scope": "Checks annual totals only; does not independently authenticate every underlying record."
+  },
+  "earlier_2024_report_comparison": {
+    "compared_values": 234,
+    "different_values": 12,
+    "differences_corrected": false
+  },
+  "output_rows": {
+    "hourly": 26304,
+    "daily": 1096
+  },
+  "in_month_hour_labels_flagged_by_upstream": 68,
+  "output_sha256": {
+    "comparison_with_earlier_2024_report.csv": "ca292c4ac566c6ac918f9a3786c7d2f746ef5cb04244fb703000c4ca6fb16a24",
+    "mrt3_daily_2023_2025.csv": "02b9410934cccbb1aa8bcccc0793a0e4d1e9b6aac709fad1e703b132729d3e02",
+    "mrt3_hourly_2023_2025.csv": "6b5b173f0e86ff64906e9158ce5adb19905cac5c0fb998dc9c2f478d2ea98c65",
+    "MRT3_RIDERSHIP_2023_2025.xlsx": "0f22117d69c1584dc2ce848f5c7dede9b38b145606cd0a9cee1a6a5092e23b2d"
+  }
+}

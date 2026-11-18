@@ -1,5 +1,6 @@
 """Exportable Matplotlib figures; no invented observations or performance values."""
 from pathlib import Path
+import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from .config import TARGET, LABELS, ROW_ID
@@ -32,6 +33,12 @@ def create_figures(result, dark=False):
         ax.plot([lo, hi], [lo, hi], color="#777777", linestyle="--", label="Perfect agreement")
         ax.legend(frameon=False)
         figures[f"actual_vs_{prefix.lower()}"] = figure
+    for prefix, color in [("Baseline", blue), ("Enhanced", teal)]:
+        figure, ax = new_chart(f"Residuals vs {prefix} MLR predicted wait", "Raw predicted waiting time (minutes)", "Residual: actual − predicted (minutes)")
+        ax.scatter(p[f"{prefix} Predicted Waiting Time"], p[f"{prefix} Error (actual - predicted)"], color=color, alpha=.7, s=27)
+        ax.axhline(0, color="#777777", linestyle="--", label="Zero residual")
+        ax.legend(frameon=False)
+        figures[f"residuals_{prefix.lower()}"] = figure
     for metric, unit in [("MSE", "minutes squared"), ("RMSE", "minutes")]:
         figure, ax = new_chart(f"Held-out {metric} comparison", ylabel=f"{metric} ({unit})")
         bars = ax.bar(result.metrics.Model, result.metrics[metric], color=[blue, teal], width=.55)
@@ -45,6 +52,32 @@ def create_figures(result, dark=False):
     ax.bar_label(bars, padding=3)
     ax.margins(y=.15)
     figures["station_classifications"] = figure
+    validation = getattr(result, "validation", {}) or {}
+    folds = validation.get("cv_folds")
+    if folds is not None and len(folds):
+        figure, ax = new_chart(f"Cross-validation MSE across {len(folds)} folds (reviewed training data)", ylabel="Validation MSE (minutes squared)")
+        boxes = ax.boxplot([folds["Baseline MSE"], folds["Enhanced MSE"]], patch_artist=True, widths=.5)
+        ax.set_xticks([1, 2], ["Traditional (Baseline) MLR", "Enhanced MLR"])
+        for box, color in zip(boxes["boxes"], [blue, teal]):
+            box.set(facecolor=color, alpha=.55)
+        figures["cv_mse"] = figure
+    confusion = validation.get("classification_confusion")
+    if confusion is not None and len(confusion):
+        figure = Figure(figsize=(8, 6), layout="constrained")
+        FigureCanvasAgg(figure)
+        ax = figure.subplots()
+        values = confusion.drop(columns=confusion.columns[0]).to_numpy()
+        names = [*LABELS, "Pending configuration"]
+        ax.imshow(values, cmap="Blues")
+        ax.set_xticks(range(len(names)), [n.replace(" ", "\n", 1) for n in names], fontsize=8)
+        ax.set_yticks(range(len(names)), names, fontsize=8)
+        ax.set(title="Station condition: actual-wait label vs predicted-wait label",
+               xlabel="Label using Enhanced MLR predicted wait", ylabel="Label using actual wait")
+        peak = values.max() if values.size else 0
+        for (row, col), count in np.ndenumerate(values):
+            ax.text(col, row, str(count), ha="center", va="center", gid="cell-count",
+                    color="white" if peak and count > peak / 2 else "#1f2933")
+        figures["classification_agreement"] = figure
     figure, ax = new_chart("IQR screening of original training observations", ylabel="Unique observation count")
     flagged = result.prepared.flags[ROW_ID].nunique()
     bars = ax.bar(["Not flagged", "Flagged for review"], [len(result.prepared.training) - flagged, flagged], color=[teal, "#c18446"])
@@ -53,7 +86,8 @@ def create_figures(result, dark=False):
     figures["iqr_screening"] = figure
     x = result.models.features.transform(result.training, enhanced=True)
     coefficient_rows = result.models.coefficients()
-    interaction_rows = coefficient_rows[(coefficient_rows.Model == "Enhanced MLR") & coefficient_rows.Type.isin(["pairwise", "higher-order"])]
+    interaction_rows = coefficient_rows[(coefficient_rows.Model == "Enhanced MLR") & coefficient_rows.Type.isin(["pairwise", "higher-order"])
+                                        & ~coefficient_rows["Added for Hierarchy"].astype(bool)]
     for number, (_, row) in enumerate(interaction_rows.iterrows(), 1):
         figure, ax = new_chart(f"Interaction term {number}: fitted contribution", "Observed training interaction product", "Term contribution to wait (minutes)")
         ax.scatter(x[row.Term], x[row.Term] * row.Coefficient, color=teal, s=24, alpha=.65)
@@ -69,7 +103,8 @@ def create_figures(result, dark=False):
                 ax.tick_params(colors="#a1b0bf")
                 for spine in ax.spines.values(): spine.set_color("#526174")
                 ax.grid(axis="y", color="#91a4b8", alpha=.15)
-            for text in figure.findobj(match=Text): text.set_color("#dce6f0")
+            for text in figure.findobj(match=Text):
+                if text.get_gid() != "cell-count": text.set_color("#dce6f0")
     return figures
 
 

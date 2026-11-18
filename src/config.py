@@ -23,6 +23,12 @@ IQR_MULTIPLIER = 1.5
 IQR_COLUMNS = (*NUMERICAL, TARGET)
 PAIRWISE_INTERACTIONS = [("Passenger Volume", "Vehicle Frequency")]
 HIGHER_ORDER_INTERACTIONS = [("Passenger Volume", "Vehicle Frequency", "Time of Day")]
+CENTER_INTERACTIONS = True  # Numerical factors are centered at training means before forming interaction products.
+# Hierarchy principle: a selected higher-order term also brings in its missing lower-order interaction components,
+# so centering only reparametrizes the model and results do not depend on where each variable's zero lies.
+HIERARCHICAL_INTERACTIONS = True
+CV_FOLDS = 5
+CV_REPEATS = 10  # Repeated k-fold within the reviewed training partition; the test partition is never used.
 TRAFFIC_SEVERITY = {}
 WEATHER_SEVERITY = {}
 TIME_OF_DAY_SEVERITY = {}
@@ -35,6 +41,9 @@ VEHICLE_FREQUENCY_UNIT = ""  # Revised study: vehicles/hour; require source decl
 ROUTE_DISTANCE_UNIT = ""  # e.g. "km"; consistent within a dataset.
 WAIT_THRESHOLDS = (15.0, 20.0, 25.0)
 STATION_THRESHOLDS = (0.75, 1.50, 2.25)
+# "adjusted": automatic severity rules come from the additive OLS fit, so each factor's effect is measured with the
+# other five held constant. "marginal": raw training category means and Pearson correlations (earlier method).
+SEVERITY_BASIS = "adjusted"
 NEGATIVE_WAIT_RULE = "clip_for_classification_only"
 
 
@@ -48,6 +57,10 @@ class ResearchConfig:
     iqr_columns: tuple = IQR_COLUMNS
     pairwise_interactions: list = field(default_factory=lambda: list(PAIRWISE_INTERACTIONS))
     higher_order_interactions: list = field(default_factory=lambda: list(HIGHER_ORDER_INTERACTIONS))
+    center_interactions: bool = CENTER_INTERACTIONS
+    hierarchical_interactions: bool = HIERARCHICAL_INTERACTIONS
+    cv_folds: int = CV_FOLDS
+    cv_repeats: int = CV_REPEATS
     category_severity: dict = field(default_factory=lambda: {
         "Traffic Condition": dict(TRAFFIC_SEVERITY),
         "Weather Condition": dict(WEATHER_SEVERITY),
@@ -58,6 +71,7 @@ class ResearchConfig:
     route_distance_unit: str = ROUTE_DISTANCE_UNIT
     wait_thresholds: tuple = WAIT_THRESHOLDS
     station_thresholds: tuple = STATION_THRESHOLDS
+    severity_basis: str = SEVERITY_BASIS
     negative_wait_rule: str = NEGATIVE_WAIT_RULE
 
     research_notes: dict = field(default_factory=dict)
@@ -87,6 +101,12 @@ class ResearchConfig:
             raise ValueError("Split method must be random or grouped.")
         if not isinstance(self.split_group_column, str):
             raise ValueError("Split group column must be text.")
+        if type(self.center_interactions) is not bool or type(self.hierarchical_interactions) is not bool:
+            raise ValueError("center_interactions and hierarchical_interactions must be true or false.")
+        if type(self.cv_folds) is not int or not 2 <= self.cv_folds <= 20:
+            raise ValueError("Cross-validation folds must be an integer from 2 to 20.")
+        if type(self.cv_repeats) is not int or not 1 <= self.cv_repeats <= 100:
+            raise ValueError("Cross-validation repeats must be an integer from 1 to 100.")
         if not math.isfinite(self.iqr_multiplier) or self.iqr_multiplier <= 0:
             raise ValueError("IQR multiplier must be positive and finite.")
         if not self.iqr_columns or not set(self.iqr_columns) <= set((*NUMERICAL, TARGET)):
@@ -118,6 +138,8 @@ class ResearchConfig:
                 raise ValueError("Thresholds must be positive and strictly increasing.")
         if self.negative_wait_rule != "clip_for_classification_only":
             raise ValueError("Supported negative-wait rule: clip_for_classification_only.")
+        if self.severity_basis not in ("adjusted", "marginal"):
+            raise ValueError("Severity basis must be adjusted or marginal.")
         return self
 
     def to_dict(self):

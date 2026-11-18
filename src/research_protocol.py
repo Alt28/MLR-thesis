@@ -72,6 +72,7 @@ def controlled_comparison(prepared, reviewed, models):
         differences.append({"Comparison": f"{before} vs {after}", "Question": question,
                             "MSE reduction": first["MSE"] - second["MSE"],
                             "RMSE reduction (min)": first["RMSE"] - second["RMSE"],
+                            "MAE reduction (min)": first["MAE"] - second["MAE"],
                             "Outcome for second arm": outcome})
     grouped = prepared.config.split_method == "grouped"
     metadata = {

@@ -1,0 +1,13 @@
+direction,origin,destination,interval_start,interval_end,reported_bus_count,observation_date,aggregation,source_table,source_page,source_url
+Southbound,Monumento,PITX,05:00,06:00,79,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Northbound,PITX,Monumento,05:00,06:00,53,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Southbound,Monumento,PITX,06:00,07:00,69,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Northbound,PITX,Monumento,06:00,07:00,73,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Southbound,Monumento,PITX,07:00,08:00,73,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Northbound,PITX,Monumento,07:00,08:00,82,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Southbound,Monumento,PITX,16:00,17:00,59,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Northbound,PITX,Monumento,16:00,17:00,73,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Southbound,Monumento,PITX,17:00,18:00,69,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Northbound,PITX,Monumento,17:00,18:00,63,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Southbound,Monumento,PITX,18:00,19:00,73,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Northbound,PITX,Monumento,18:00,19:00,41,,published_hour_direction_summary,3,10,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf

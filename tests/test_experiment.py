@@ -15,7 +15,7 @@ def test_complete_export(tmp_path, fixture_data):
     directory = export_experiment(result, tmp_path)
     assert (directory / "experiment.xlsx").exists()
     assert (directory / "models.joblib").exists()
-    assert len(list((directory / "figures").glob("*.png"))) == 8
+    assert len(list((directory / "figures").glob("*.png"))) == 12
     loaded = pd.read_csv(directory / "csv" / "predictions.csv")
     assert len(loaded) == len(prepared.test)
     assert loaded["Overall Station Classification"].eq("Pending configuration").all()
@@ -24,7 +24,7 @@ def test_complete_export(tmp_path, fixture_data):
     assert len(manifest["source_sha256"]) == 64
     assert "category_evidence" in pd.ExcelFile(directory / "experiment.xlsx").sheet_names
     rules = json.loads((directory / "classification_rules.json").read_text(encoding="utf-8"))
-    assert rules["classification_version"] == 2
+    assert rules["classification_version"] == 3
     assert rules["category_mappings"] == result.classifier.category_mappings
     evidence = pd.read_excel(directory / "experiment.xlsx", sheet_name="category_evidence")
     assert {"Q1", "Q2", "Q3", "Severity Score", "Mapping Source", "Status"} <= set(evidence.columns)
@@ -41,9 +41,12 @@ def test_complete_export(tmp_path, fixture_data):
     pd.testing.assert_frame_equal(restored.classify(prepared.test, result.predictions["Enhanced Predicted Waiting Time"]),
                                   result.classifier.classify(prepared.test, result.predictions["Enhanced Predicted Waiting Time"]))
     specification = pd.read_excel(directory / "experiment.xlsx", sheet_name="selected_interactions")
-    assert specification["Order"].tolist() == ["pairwise", "higher-order"]
-    assert specification["Predictors"].tolist() == [" × ".join(t) for t in
+    selected = specification[~specification["Added for Hierarchy"]]
+    assert selected["Order"].tolist() == ["pairwise", "higher-order"]
+    assert selected["Predictors"].tolist() == [" × ".join(t) for t in
         [*prepared.config.pairwise_interactions, *prepared.config.higher_order_interactions]]
+    assert specification.loc[specification["Added for Hierarchy"], "Predictors"].tolist() == [
+        "Passenger Volume × Time of Day", "Vehicle Frequency × Time of Day"]
     assert specification["Main Effects Retained"].all()
 
 

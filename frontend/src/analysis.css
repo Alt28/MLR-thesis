@@ -504,15 +504,7 @@
 .library-file-description {font-size:.8125rem;line-height:1.6;color:var(--muted);overflow-wrap:anywhere}
 .library-file-meta {display:flex;gap:8px 10px;align-items:center;flex-wrap:wrap;font-size:.75rem;line-height:1.6;color:var(--muted);margin-top:4px}
 .library-demo-badge {color:#d1c196;background:#c5ac7010;border:1px solid #c5ac7030;border-radius:5px;padding:2px 6px}
-.library-reference-badge {display:inline-block;color:#abd1ec;background:#7bb8e010;border:1px solid #7bb8e030;border-radius:5px;padding:2px 6px;font-size:.75rem}
 .library-file-note {color:#d1c196;font-size:.75rem;line-height:1.7}
-.library-reference .library-back {display:flex;gap:7px;align-items:center;align-self:flex-start}
-.dataset-drop .library-reference h3 {display:block;margin:12px 0 8px;line-height:1.6}
-.dataset-library-modal .library-reference p {margin:0;line-height:1.8}
-.library-reference-note {padding:16px;border:1px solid var(--border);border-radius:9px;background:#111c26}
-.dataset-library-modal .library-reference-note p {margin-top:8px;color:var(--muted);font-size:.875rem}
-.library-reference-filename {overflow-wrap:anywhere;color:var(--muted);font-size:.8125rem}
-.library-reference-actions {display:flex;gap:10px;flex-wrap:wrap}
 .dataset-library-modal .library-import-error {margin:12px 24px 0;line-height:1.7;max-height:150px;overflow-y:auto}
 .library-select {display:flex;gap:6px;align-items:center;font-size:.8125rem;color:var(--teal);flex-shrink:0}
 .library-footer {display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 24px;border-top:1px solid var(--border);background:#14202a;color:var(--muted);font-size:.75rem}

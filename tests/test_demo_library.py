@@ -64,10 +64,10 @@ def test_earlier_library_workbooks_preserve_declarations(tmp_path, name, rows):
     'mrt3_daily_ridership_jan_apr_2024.csv',
     'metro_manila_historical_scheduled_frequency.csv',
 ])
-def test_reference_files_are_unchanged_and_not_complete_model_inputs(tmp_path, name):
+def test_archived_reference_files_are_not_complete_model_inputs(tmp_path, name):
     root = Path(__file__).resolve().parents[1]
-    content = (root / 'frontend/public/assets/datasets' / name).read_bytes()
-    assert content == (root / 'data/philippine_sources/prepared' / name).read_bytes()
+    content = (root / 'data/philippine_sources/prepared' / name).read_bytes()
+    assert not (root / 'frontend/public/assets/datasets' / name).exists()
     with TestClient(create_app(tmp_path)) as client:
         response = client.post('/api/experiments', files={'file': (name, content)})
         assert response.status_code == 400

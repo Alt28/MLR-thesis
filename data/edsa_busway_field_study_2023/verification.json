@@ -1,0 +1,15 @@
+{
+  "dwell_numeric_cells": 80,
+  "bus_counts_match_actual_column_table_5": true,
+  "survey_total_buses": 29,
+  "survey_total_roundtrips": 105,
+  "prepared_row_counts": {
+    "edsa_busway_dwell_means_2023.csv": 80,
+    "edsa_busway_reported_bus_counts.csv": 12,
+    "edsa_busway_survey_coverage_2023.csv": 9
+  },
+  "unique_station_direction_pairs": 40,
+  "workbook_matches_extracted_values": true,
+  "passenger_waiting_time_available": false,
+  "complete_six_predictors_available": false
+}

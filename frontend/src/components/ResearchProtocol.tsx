@@ -34,7 +34,42 @@ export function ControlledComparisons({s}: {s: Experiment}) {
       <p className="section-caption">All three experiments use the same {s.test} test observations. A uses the original training records. B uses reviewed records. C adds selected interactions to the same reviewed records as B.</p>
       <div className="table-scroll"><table aria-label="Controlled experiment metrics"><thead><tr><th>Experiment</th><th>Training rows</th><th>MSE</th><th>RMSE (min)</th></tr></thead><tbody>{s.study_metrics?.map(row => <tr key={String(row.Arm)}><th scope="row">{String(row.Arm)}: {String(row.Model)}</th><td>{format(row['Training Rows'], 0)}</td><td>{format(row.MSE, 4)}</td><td>{format(row.RMSE, 4)}</td></tr>)}</tbody></table></div>
       <ul className="protocol-comparisons">{s.study_comparisons?.map(row => <li key={String(row.Comparison)}><strong>{String(row.Comparison)}: {String(row.Question)}</strong><span>{String(row['Outcome for second arm'])}. RMSE reduction: {format(row['RMSE reduction (min)'], 4)} min.</span></li>)}</ul>
-      <p className="section-caption">Positive reductions mean lower error for the second experiment; negative values mean higher error. Flagging records alone does not demonstrate an IQR benefit. These are descriptive results from one split, not a significance test.</p>
+      <p className="section-caption">Positive reductions mean lower error for the second experiment; negative values mean higher error. Flagging records alone does not demonstrate an IQR benefit. See Statistical checks for paired tests and cross-validation.</p>
+    </>}
+  </div></details>
+}
+
+const pValue = (value: unknown) => typeof value !== 'number' ? '—' : value < 0.001 ? '< 0.001' : value.toFixed(3)
+
+export function StatisticalChecks({s}: {s: Experiment}) {
+  const v = s.validation
+  const mseRow = v?.cv_summary.find(row => row.Metric === 'MSE')
+  const cvTest = v?.cv_test[0]
+  const agreement = Object.fromEntries((v?.classification ?? []).map(row => [String(row.Measure), row.Value]))
+  return <details className="disclosure statistical-checks"><summary>Statistical checks</summary><div className="disclosure-body">
+    {!v?.available ? <p className="decision-note">This saved run predates the statistical checks. Select Analyze Dataset again to generate them.</p> : <>
+      <h4>Paired tests on the {s.test} evaluation observations</h4>
+      <p className="section-caption">Each observation's squared error under the first experiment minus the second. p-values below 0.05 indicate a difference unlikely under no true difference, for this dataset only.</p>
+      <div className="table-scroll"><table aria-label="Paired significance tests"><thead><tr><th>Comparison</th><th>Test</th><th>p-value</th><th>Result</th></tr></thead><tbody>{v.heldout.map((row, index) => <tr key={index}><td>{String(row.Comparison)}</td><td>{String(row.Test)}</td><td>{pValue(row['p-value'])}</td><td>{String(row.Result)}</td></tr>)}</tbody></table></div>
+      {mseRow ? <>
+        <h4>Cross-validation within the reviewed training data</h4>
+        <p className="section-caption">{v.cv_design.folds} folds × {v.cv_design.repeats} repeats ({v.cv_design.fitted_folds} fits, {v.cv_design.design}). The evaluation observations are never used.</p>
+        <dl className="research-facts">
+          <div><dt>Traditional MLR MSE</dt><dd>{format(mseRow['Baseline Mean'], 4)} ± {format(mseRow['Baseline SD'], 4)}</dd></div>
+          <div><dt>Enhanced MLR MSE</dt><dd>{format(mseRow['Enhanced Mean'], 4)} ± {format(mseRow['Enhanced SD'], 4)}</dd></div>
+          <div><dt>Folds where Enhanced is better</dt><dd>{format(mseRow['Folds Where Enhanced Is Better (%)'], 1)}%</dd></div>
+          <div><dt>Corrected resampled t-test</dt><dd>p = {pValue(cvTest?.['p-value'])} · {String(cvTest?.Result ?? '—')}</dd></div>
+        </dl>
+      </> : null}
+      <h4>Station classification agreement</h4>
+      <p className="section-caption">Each evaluation observation is classified with its actual wait and with the Enhanced MLR predicted wait; the other six factors are the same. This shows how prediction error changes the condition, not whether the thresholds are operationally valid.</p>
+      <dl className="research-facts">
+        <div><dt>Resolved under both labels</dt><dd>{format(agreement['Observations resolved under both labels'], 0)} of {s.test}</dd></div>
+        <div><dt>Exact agreement</dt><dd>{format(agreement['Exact agreement (%)'], 1)}%</dd></div>
+        <div><dt>Within one level</dt><dd>{format(agreement['Agreement within one condition level (%)'], 1)}%</dd></div>
+        <div><dt>Cohen's kappa</dt><dd>{format(agreement["Cohen's kappa"], 3)}</dd></div>
+      </dl>
+      {v.notes.map(note => <p key={note} className="decision-note">{note}</p>)}
     </>}
   </div></details>
 }

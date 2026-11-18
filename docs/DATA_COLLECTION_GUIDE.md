@@ -18,6 +18,26 @@ Agree on what one row means: for example, one observed waiting episode or a defi
 
 Useful identifying metadata: Record ID, Station ID (or `Station`), Route, Transport Mode, Observation Timestamp, Observation Period, and Source Record Reference. Extra columns are retained as metadata; they do not automatically enter the regression. Add a consistent station identifier to obtain station summaries. Avoid unnecessary passenger-identifying information.
 
+## Field-collection workbook (recommended way to collect)
+
+No public dataset was found that contains measured passenger waiting times together with these six predictors for Metro Manila (searched November 2026; candidates were simulated, perception surveys, schedules, or daily ridership totals). Collect the data on site with the provided workbook:
+
+1. `.\.venv\Scripts\python.exe scripts\field_data.py new` creates `data\field_collection_workbook.xlsx` (it refuses to overwrite an existing workbook, so collected data cannot be lost).
+2. On site, two roles:
+   - **Counter** fills the **Counts** sheet every 15 minutes: passengers arriving for the observed service and direction, vehicles that stopped and served it, and the weather and traffic in that block (dropdowns).
+   - **Timer** fills the **Passengers** sheet: arrival time at the waiting area and boarding time of the next passenger to join the queue, plus any full vehicles that passed them.
+   - Start counting at least 60 minutes before timing the first passenger.
+3. `.\.venv\Scripts\python.exe scripts\field_data.py build data\field_collection_workbook.xlsx` writes `data\recorded_dataset.xlsx` and `.csv`. Upload that file to the system.
+
+The builder computes every model column from the raw entries, using the Table 3.1 definitions:
+- **Passenger Volume** is the sum of arrivals in the four completed 15-minute blocks before the passenger's arrival block.
+- **Vehicle Frequency** is 60 × N / 60, with N the vehicles counted in those same blocks.
+- **Weather and Traffic** come from the arrival's own block.
+- **Time of Day** uses the fixed boundaries in the Lists sheet.
+- **Actual Waiting Time** is boarding minus arrival, in minutes.
+
+Passengers without four complete preceding blocks, or with boarding not after arrival, are excluded and listed with the reason. The output also contains a Readiness sheet that checks the targets: at least 400 rows, at least 20 rows per weather, traffic, and time-of-day category, at least 4 stations, and both modes. The units are declared automatically (vehicles/hour, km).
+
 ## Dataset checks before final evaluation
 
 - Verify source authenticity, definitions, units, and the link between each row's predictors and target.

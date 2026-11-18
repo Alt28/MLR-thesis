@@ -10,17 +10,5 @@
   "transportation_dataset_40_ph_internet_rows.xlsx": {
     "sha256": "412383ae3b1c681698789983113cd30165fd62276f7c4f1e3c2b3afea998f01b",
     "bytes": 11473
-  },
-  "mrt3_daily_ridership_jan_apr_2024.csv": {
-    "sha256": "a9c9336aef02e4d16c044f8c65b0d6894fbeabc3758a1249bfa8a403c116e435",
-    "bytes": 20434
-  },
-  "metro_manila_historical_scheduled_frequency.csv": {
-    "sha256": "b2f19e3a63d4d7c53fdae2b9999feff9fe81357850d727c79e1cc21bd3d1a248",
-    "bytes": 463253
-  },
-  "SAKAY-GTFS-LICENSE.md": {
-    "sha256": "6a8489c1273963c301e332dc4b467c211f1ebe9d083f14eb51ecf53bbb7d6db6",
-    "bytes": 13717
   }
 }

@@ -8,13 +8,14 @@ import { Modal, format } from './Common'
 import { DataTable } from './DataTable'
 import { StationCondition } from './StationCondition'
 import { TransportOutputs, TransportContext, observationMode } from './TransportOutputs'
-import { ControlledComparisons } from './ResearchProtocol'
+import { ControlledComparisons, StatisticalChecks } from './ResearchProtocol'
 import { ExportResults, ResearchDetails } from './ResearchDetails'
 import { PredictionOnly } from './PredictionOnly'
 import { PredictionExplanations } from './PredictionExplanations'
 
 const minutes = (value: unknown) => typeof value === 'number'
   ? value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '—'
+const metricUnits = {MSE: 'squared minutes', RMSE: 'minutes', MAE: 'minutes', R2: 'share explained'} as const
 
 export function AnalysisResults({s}: {s: Experiment}) {
   const [row, setRow] = useState<Row | null>(null)
@@ -76,15 +77,16 @@ export function AnalysisResults({s}: {s: Experiment}) {
       <section className="full-comparison">
         <h3>Model Performance</h3>
         <p className="section-caption">Traditional MLR is the baseline comparison. Both models were checked against the same {s.test} observations kept aside from training. Smaller error values mean closer predictions. This main comparison uses reviewed training data for both models (B vs C).</p>
-        <div className="table-scroll"><table className="model-comparison" aria-label="Model comparison"><thead><tr><th>Metric</th><th>Traditional MLR</th><th>Enhanced MLR</th></tr></thead><tbody>{(['MSE', 'RMSE'] as const).map(metric => <tr key={metric}><th scope="row">{metric}<small>{metric === 'MSE' ? 'squared minutes' : 'minutes'}</small></th><td>{format(traditional?.[metric], 4)}</td><td>{format(enhanced?.[metric], 4)}</td></tr>)}</tbody></table></div>
-        {!!s.mode_metrics?.length && <><h4>Performance by transport mode</h4><p className="section-caption">Separate test-set metrics are shown only for modes present in the test data. These are subsets of the pooled evaluation.</p><div className="table-scroll"><table aria-label="Model performance by transport mode"><thead><tr><th>Transport mode</th><th>Model</th><th>Test rows</th><th>MSE</th><th>RMSE (min)</th></tr></thead><tbody>{s.mode_metrics.map((item, index) => <tr key={`${item['Transport Mode']}-${item.Model}-${index}`}><td>{format(item['Transport Mode'])}</td><td>{format(displayValue(item.Model))}</td><td>{format(item['Test Rows'], 0)}</td><td>{format(item.MSE, 4)}</td><td>{format(item.RMSE, 4)}</td></tr>)}</tbody></table></div></>}
+        <div className="table-scroll"><table className="model-comparison" aria-label="Model comparison"><thead><tr><th>Metric</th><th>Traditional MLR</th><th>Enhanced MLR</th></tr></thead><tbody>{(['MSE', 'RMSE', 'MAE', 'R2'] as const).map(metric => <tr key={metric}><th scope="row" title={columnHelp[metric]}>{metric === 'R2' ? 'R²' : metric}<small>{metricUnits[metric]}</small></th><td>{format(traditional?.[metric], 4)}</td><td>{format(enhanced?.[metric], 4)}</td></tr>)}</tbody></table></div>
+        {!!s.mode_metrics?.length && <><h4>Performance by transport mode</h4><p className="section-caption">Separate test-set metrics are shown only for modes present in the test data. These are subsets of the pooled evaluation.</p><div className="table-scroll"><table aria-label="Model performance by transport mode"><thead><tr><th>Transport mode</th><th>Model</th><th>Test rows</th><th>MSE</th><th>RMSE (min)</th><th>MAE (min)</th><th>R²</th></tr></thead><tbody>{s.mode_metrics.map((item, index) => <tr key={`${item['Transport Mode']}-${item.Model}-${index}`}><td>{format(item['Transport Mode'])}</td><td>{format(displayValue(item.Model))}</td><td>{format(item['Test Rows'], 0)}</td><td>{format(item.MSE, 4)}</td><td>{format(item.RMSE, 4)}</td><td>{format(item.MAE, 4)}</td><td>{format(item.R2, 4)}</td></tr>)}</tbody></table></div></>}
         {s.station_aggregation && <details className="disclosure"><summary>Station-level summary</summary><div className="disclosure-body">
           <p className="section-caption">{s.station_aggregation.aggregation || s.station_aggregation.reason} {s.station_aggregation.available && `Grouped ${s.station_aggregation.station_count} stations; ${s.station_aggregation.ungrouped_records} test rows had no Station ID.`}</p>
           {s.station_aggregation.available && <DataTable s={s} name="station_summary"/>}
         </div></details>}
-        <dl className="metric-explanations"><div><dt>RMSE</dt><dd>{columnHelp.RMSE} It is measured in minutes, not a confidence percentage.</dd></div><div><dt>MSE</dt><dd>Averages squared prediction errors, giving larger mistakes more weight. Lower is better.</dd></div></dl>
+        <dl className="metric-explanations"><div><dt>RMSE</dt><dd>{columnHelp.RMSE} It is measured in minutes, not a confidence percentage.</dd></div><div><dt>MSE</dt><dd>Averages squared prediction errors, giving larger mistakes more weight. Lower is better.</dd></div><div><dt>MAE</dt><dd>{columnHelp.MAE}</dd></div><div><dt>R²</dt><dd>{columnHelp.R2}</dd></div></dl>
         <p className="performance-conclusion">{performanceConclusion(s.conclusion)}</p>
         <ControlledComparisons s={s}/>
+        <StatisticalChecks s={s}/>
       </section>
       <PredictionOnly s={s}/>
       <section className="prediction-details">

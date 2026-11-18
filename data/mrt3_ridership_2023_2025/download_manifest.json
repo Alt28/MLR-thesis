@@ -1,0 +1,85 @@
+{
+  "retrieved_date": "2026-11-18",
+  "repository": "https://github.com/ongods/mrt3-ridership-data",
+  "commit": "f4f1b40413efef0e7381892f67e43876ea3a99f5",
+  "files": [
+    {
+      "path": "README.md",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/README.md",
+      "bytes": 9008,
+      "sha256": "5d477f755aee7a1cf6890d4927c051670658042f5275c8fd22f5ca4b144d7600"
+    },
+    {
+      "path": "csv/source_manifest.json",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/csv/source_manifest.json",
+      "bytes": 2035,
+      "sha256": "af6232cc5d7a5d8707bc6e2677f66eb8be91b7fcf8bfd117d8bfb96b04bcbb3d"
+    },
+    {
+      "path": "csv/quality_summary.csv",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/csv/quality_summary.csv",
+      "bytes": 4700,
+      "sha256": "4cc2517c4cb2cccae142cbc26f67ab433a8f4097a58e98b18e97b81b5ed911b1"
+    },
+    {
+      "path": "csv/data_quality_issues.csv",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/csv/data_quality_issues.csv",
+      "bytes": 45754,
+      "sha256": "400636dea08fe424ba68c23d68b6d4c7cf6357a1d09b7a20c70f1ebe45b0ff1a"
+    },
+    {
+      "path": "Daily Hourly 2023.xlsx",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/Daily%20Hourly%202023.xlsx",
+      "bytes": 2192985,
+      "sha256": "5048304dc919f2b25991498094acb4c3a802918ce2e08eb98bc3979c22e8ccd4"
+    },
+    {
+      "path": "csv/mrt3_hourly_2023.csv",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/csv/mrt3_hourly_2023.csv",
+      "bytes": 1818432,
+      "sha256": "8e08501637b937a48aab9a8c7063c7a9d00c8dfe1a9ec321b547d223dea86623"
+    },
+    {
+      "path": "csv/mrt3_daily_2023.csv",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/csv/mrt3_daily_2023.csv",
+      "bytes": 85983,
+      "sha256": "80bfbf899e073b58f5e6b1e91a04752d028b430333e9b031be77b5d67d1872fb"
+    },
+    {
+      "path": "Daily Hourly 2024.xlsx",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/Daily%20Hourly%202024.xlsx",
+      "bytes": 2156602,
+      "sha256": "80dbf11ed17bb30b68900569d37377f6f3170572b90c239daace74f1a4f2dec8"
+    },
+    {
+      "path": "csv/mrt3_hourly_2024.csv",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/csv/mrt3_hourly_2024.csv",
+      "bytes": 1804890,
+      "sha256": "c513b91ead1a9c166c7e9b5b0f8ca035694e6e8cb9b2a2faa2c046f2d91feff7"
+    },
+    {
+      "path": "csv/mrt3_daily_2024.csv",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/csv/mrt3_daily_2024.csv",
+      "bytes": 83730,
+      "sha256": "d6f3c21001098905ccf77b7569c7f96b1023b0347a30b53bbdaae557cd97c710"
+    },
+    {
+      "path": "Daily Hourly 2025.xlsx",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/Daily%20Hourly%202025.xlsx",
+      "bytes": 2189500,
+      "sha256": "0c454e64ab062e1650068a77130c54d9d7c29f588e056e6bc55f3872b5e4e66d"
+    },
+    {
+      "path": "csv/mrt3_hourly_2025.csv",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/csv/mrt3_hourly_2025.csv",
+      "bytes": 1905321,
+      "sha256": "7a7857b17d54d60e9b282bb0235c3c0a6283503a2fb6a9f69776a5694053d10a"
+    },
+    {
+      "path": "csv/mrt3_daily_2025.csv",
+      "url": "https://raw.githubusercontent.com/ongods/mrt3-ridership-data/f4f1b40413efef0e7381892f67e43876ea3a99f5/csv/mrt3_daily_2025.csv",
+      "bytes": 93851,
+      "sha256": "bf3fa0f88757646a3911cb3b313584fbc3a9db9a06392bb7356b8f04a1dfbaf1"
+    }
+  ]
+}

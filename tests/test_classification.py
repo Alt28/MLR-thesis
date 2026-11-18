@@ -85,7 +85,7 @@ def test_training_category_means_generate_and_store_all_four_scores(fixture_data
     training = fixture_data.copy()
     training['Actual Waiting Time'] = np.arange(1., 81.)
     training['Traffic Condition'] = np.repeat(['a', 'b', 'c', 'd'], 20)
-    config = ResearchConfig(vehicle_frequency_unit='fixture vehicles/hour', route_distance_unit='fixture km')
+    config = ResearchConfig(vehicle_frequency_unit='fixture vehicles/hour', route_distance_unit='fixture km', severity_basis='marginal')
     before = config.to_dict()
     classifier = StationClassifier(config).fit(training)
     assert classifier.category_mappings['Traffic Condition'] == {'a': 0, 'b': 1, 'c': 2, 'd': 3}
@@ -128,7 +128,7 @@ def test_auto_directions_follow_training_relationship_only(fixture_data, directi
     training['Actual Waiting Time'] = x
     for factor in ['Route Distance', 'Vehicle Frequency']:
         training[factor] = x if direction == 'higher' else x[::-1]
-    classifier = StationClassifier(ResearchConfig(vehicle_frequency_unit='fixture units')).fit(training)
+    classifier = StationClassifier(ResearchConfig(vehicle_frequency_unit='fixture units', severity_basis='marginal')).fit(training)
     for factor in ['Route Distance', 'Vehicle Frequency']:
         assert classifier.directions[factor] == direction
         assert classifier.thresholds.loc[factor, 'Direction Source'] == 'Training Pearson correlation'
@@ -144,7 +144,7 @@ def test_zero_relationship_requires_direction_and_explicit_override_wins(fixture
     training = fixture_data.copy()
     training['Route Distance'] = np.arange(1., 81.)
     training['Actual Waiting Time'] = (np.arange(1., 81.) - 40.5) ** 2
-    auto = StationClassifier(ResearchConfig()).fit(training)
+    auto = StationClassifier(ResearchConfig(severity_basis='marginal')).fit(training)
     assert auto.directions['Route Distance'] is None
     assert auto.thresholds.loc['Route Distance', 'Status'] == 'Requires Researcher Decision'
     fixed = StationClassifier(configured()).fit(training)
@@ -201,6 +201,36 @@ def test_degenerate_target_and_single_category_do_not_generate_mappings(fixture_
     # A documented configured rule is distinct from a learned quartile rule.
     config = ResearchConfig(category_severity={'Weather Condition': {'only category': 1}})
     assert StationClassifier(config).fit(training).category_mappings['Weather Condition'] == {'only category': 1}
+
+
+def test_adjusted_rules_remove_confounding_and_score_no_effect_as_normal(fixture_data):
+    rng = np.random.default_rng(4)
+    n = 400
+    peak = rng.random(n) < .5
+    # Confounded on purpose: more vehicles run at peak, and peak waits are long, so the raw correlation is positive.
+    frequency = np.where(peak, rng.uniform(10, 20, n), rng.uniform(2, 10, n))
+    weather = rng.choice(['Clear', 'Rain'], n, p=[.7, .3])
+    training = pd.DataFrame({
+        'Traffic Condition': rng.choice(['A', 'B'], n), 'Weather Condition': weather,
+        'Passenger Volume': rng.uniform(10, 300, n), 'Route Distance': rng.uniform(1, 30, n),
+        'Vehicle Frequency': frequency, 'Time of Day': np.where(peak, 'Peak', 'Off-Peak'),
+    })
+    training['Actual Waiting Time'] = (15 + 15 * peak - .5 * frequency + 4 * (weather == 'Rain')
+                                       + .02 * training['Passenger Volume'] + rng.normal(0, 1, n))
+    from src.data_loader import validate_data
+    training = validate_data(training)
+    units = dict(vehicle_frequency_unit='fixture vehicles/hour', route_distance_unit='fixture km')
+    assert training['Vehicle Frequency'].corr(training['Actual Waiting Time']) > 0
+    assert StationClassifier(ResearchConfig(severity_basis='marginal', **units)).fit(training).directions['Vehicle Frequency'] == 'higher'
+    adjusted = StationClassifier(ResearchConfig(**units)).fit(training)
+    assert adjusted.directions['Vehicle Frequency'] == 'lower'
+    assert adjusted.thresholds.loc['Vehicle Frequency', 'Direction Source'].startswith('Adjusted MLR coefficient')
+    assert adjusted.category_mappings['Weather Condition'] == {'Clear': 0, 'Rain': 3}
+    # Route Distance and Traffic Condition have no true effect.
+    assert 'Route Distance' in adjusted.no_effect and adjusted.directions['Route Distance'] is None
+    assert set(adjusted.category_mappings['Traffic Condition'].values()) == {0}
+    result = adjusted.classify(training, np.full(n, 12.))
+    assert result['Route Distance Severity'].eq(0).all() and result['Multi-Factor Station Score'].notna().all()
 
 
 def test_reviewed_rows_determine_category_mapping_and_target_quartiles(fixture_data):

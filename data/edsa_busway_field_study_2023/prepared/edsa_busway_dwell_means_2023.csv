@@ -1,0 +1,81 @@
+station,direction,peak_period,mean_dwell_seconds,aggregation,source_table,source_page,source_url
+PITx,Northbound,AM Peak,107,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+PITx,Northbound,PM Peak,78,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+City of Dreams,Northbound,AM Peak,17,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+City of Dreams,Northbound,PM Peak,22,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+DFA,Northbound,AM Peak,19,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+DFA,Northbound,PM Peak,18,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Roxas Boulevard,Northbound,AM Peak,271,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Roxas Boulevard,Northbound,PM Peak,204,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Taft Avenue,Northbound,AM Peak,122,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Taft Avenue,Northbound,PM Peak,178,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Ayala,Northbound,AM Peak,114,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Ayala,Northbound,PM Peak,103,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Buendia,Northbound,AM Peak,45,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Buendia,Northbound,PM Peak,43,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Guadalupe,Northbound,AM Peak,35,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Guadalupe,Northbound,PM Peak,55,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Ortigas,Northbound,AM Peak,96,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Ortigas,Northbound,PM Peak,286,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Santolan,Northbound,AM Peak,27,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Santolan,Northbound,PM Peak,33,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Main Avenue,Northbound,AM Peak,102,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Main Avenue,Northbound,PM Peak,120,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Nepa Q. Mart,Northbound,AM Peak,87,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Nepa Q. Mart,Northbound,PM Peak,92,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Quezon Avenue,Northbound,AM Peak,101,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Quezon Avenue,Northbound,PM Peak,202,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+North Avenue,Northbound,AM Peak,267,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+North Avenue,Northbound,PM Peak,285,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Roosevelt,Northbound,AM Peak,253,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Roosevelt,Northbound,PM Peak,184,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Kaingin,Northbound,AM Peak,54,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Kaingin,Northbound,PM Peak,66,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Balintawak,Northbound,AM Peak,45,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Balintawak,Northbound,PM Peak,56,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Bagong Barrio,Northbound,AM Peak,68,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Bagong Barrio,Northbound,PM Peak,87,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Monumento,Northbound,AM Peak,39,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Monumento,Northbound,PM Peak,41,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Monumento,Southbound,AM Peak,138,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Monumento,Southbound,PM Peak,71,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Bagong Barrio,Southbound,AM Peak,223,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Bagong Barrio,Southbound,PM Peak,224,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Balintawak,Southbound,AM Peak,8,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Balintawak,Southbound,PM Peak,6,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Kaingin,Southbound,AM Peak,82,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Kaingin,Southbound,PM Peak,63,published_survey_mean,4,11,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Roosevelt,Southbound,AM Peak,135,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Roosevelt,Southbound,PM Peak,103,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+North Avenue,Southbound,AM Peak,110,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+North Avenue,Southbound,PM Peak,136,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Quezon Avenue,Southbound,AM Peak,91,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Quezon Avenue,Southbound,PM Peak,167,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Nepa Q. Mart,Southbound,AM Peak,122,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Nepa Q. Mart,Southbound,PM Peak,143,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Main Avenue,Southbound,AM Peak,93,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Main Avenue,Southbound,PM Peak,143,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Santolan,Southbound,AM Peak,42,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Santolan,Southbound,PM Peak,51,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Ortigas,Southbound,AM Peak,105,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Ortigas,Southbound,PM Peak,200,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Guadalupe,Southbound,AM Peak,30,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Guadalupe,Southbound,PM Peak,32,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Buendia,Southbound,AM Peak,39,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Buendia,Southbound,PM Peak,27,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Ayala,Southbound,AM Peak,189,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Ayala,Southbound,PM Peak,258,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Tramo,Southbound,AM Peak,25,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Tramo,Southbound,PM Peak,38,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Taft Avenue,Southbound,AM Peak,140,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Taft Avenue,Southbound,PM Peak,106,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Roxas Boulevard,Southbound,AM Peak,84,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Roxas Boulevard,Southbound,PM Peak,67,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+MOA,Southbound,AM Peak,87,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+MOA,Southbound,PM Peak,214,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+DFA/Shell/Starbucks,Southbound,AM Peak,12,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+DFA/Shell/Starbucks,Southbound,PM Peak,8,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Ayala Malls/Aseana,Southbound,AM Peak,54,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+Ayala Malls/Aseana,Southbound,PM Peak,54,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+PITx,Southbound,AM Peak,162,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
+PITx,Southbound,PM Peak,117,published_survey_mean,4,12,https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf
