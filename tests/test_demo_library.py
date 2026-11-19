@@ -40,7 +40,6 @@ def test_library_demo_uses_normal_validation_and_classification(tmp_path, mode):
 
 
 @pytest.mark.parametrize('name,rows', [
-    ('transportation_dataset_500_demo_validated.xlsx', 500),
     ('transportation_dataset_200_demo_fixed.xlsx', 200),
     ('transportation_dataset_40_ph_internet_rows.xlsx', 40),
 ])
@@ -58,6 +57,23 @@ def test_earlier_library_workbooks_preserve_declarations(tmp_path, name, rows):
         assert state['transport']['dataset_counts']['unspecified'] == rows
         assert not state['approved'] and state['trained'] == []
         assert state['config']['vehicle_frequency_unit'] == ('' if rows == 40 else 'vehicles/hour')
+
+
+def test_bus_train_library_workbook_labels_both_modes(tmp_path):
+    name = 'transportation_dataset_500_bus_train.xlsx'
+    folder = Path(__file__).resolve().parents[1] / 'frontend/public/assets/datasets'
+    content = (folder / name).read_bytes()
+    manifest = json.loads((folder / 'source-manifest.json').read_text())
+    assert hashlib.sha256(content).hexdigest() == manifest[name]['sha256']
+    with TestClient(create_app(tmp_path)) as client:
+        response = client.post('/api/experiments', files={'file': (name, content)})
+        assert response.status_code == 201, response.text
+        state = response.json()
+        assert state['records'] == 500
+        assert state['provenance']['status'] == 'prototype'
+        assert state['transport']['dataset_counts']['bus'] == 250
+        assert state['transport']['dataset_counts']['train'] == 250
+        assert not state['approved'] and state['trained'] == []
 
 
 @pytest.mark.parametrize('name', [

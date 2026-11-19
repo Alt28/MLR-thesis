@@ -10,8 +10,7 @@ def prepare(downloads):
     root = Path(__file__).resolve().parents[1]
     target = root / 'frontend/public/assets/datasets'
     target.mkdir(parents=True, exist_ok=True)
-    names = ['transportation_dataset_500_demo_validated.xlsx',
-             'transportation_dataset_200_demo_fixed.xlsx',
+    names = ['transportation_dataset_200_demo_fixed.xlsx',
              'transportation_dataset_40_ph_internet_rows.xlsx']
     files = [(downloads / name, name) for name in names]
     if any(not path.is_file() for path, _ in files):
