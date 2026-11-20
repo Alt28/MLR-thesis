@@ -67,7 +67,7 @@ export function AnalysisResults({s}: {s: Experiment}) {
     <ResearchDetails s={s} advanced={row && <StationCondition s={s} row={row}/>}>
       <section className="plain-summary">
         <h3>Summary</h3>
-        {s.provenance && <p className="decision-note">{s.provenance.message}</p>}
+        {s.provenance && <details className="disclosure"><summary>Dataset source notes</summary><div className="disclosure-body"><p>{s.provenance.message}</p></div></details>}
         {row ? <><p>For observation <strong>{String(row['Record ID'])}</strong>, the Enhanced MLR predicted waiting time is <strong>{minutes(row['Enhanced Predicted Waiting Time'])} minutes</strong>.</p>
           {row['Enhanced Negative Prediction'] && <p className="decision-note">The model returned a negative estimate, so this is not a usable waiting-time forecast. The original value is retained so the evaluation remains transparent.</p>}
           <p>Station condition: <strong>{condition}</strong>. {condition === 'Requires Researcher Decision' ? 'Some data or scoring rules need attention before a condition can be reported.' : 'This combines the predicted wait with the six transportation factors for this observation.'}</p>

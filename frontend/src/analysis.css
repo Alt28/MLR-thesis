@@ -466,8 +466,8 @@
 .dataset-validation .validation-status {margin:0;padding:3px 8px;border-radius:5px;background:var(--teal-soft)}
 .dataset-validation .validation-note {margin:0;line-height:1.6}
 .dataset-file-card .dataset-transport {border-bottom:0;border-top:0;padding:8px 0;margin:6px 0 0;gap:4px 10px}
-.dataset-file-card .dataset-source-note {border:0;border-radius:7px;background:#c5ac7010;padding:10px 12px;margin:4px 0 0;line-height:1.6}
-.dataset-source-note summary {cursor:pointer;color:#d3c199}
+.dataset-file-card .dataset-source-note {border:0;background:none;padding:8px 0;margin:4px 0 0;line-height:1.6}
+.dataset-source-note summary {cursor:pointer;color:var(--muted)}
 .dataset-source-note p {margin:8px 0 0;color:var(--muted);line-height:1.7}
 .dataset-input .preview-heading {margin:22px 0 10px;gap:6px 12px}
 .dataset-input .preview-heading .text-button {min-height:32px;padding:0}
@@ -511,7 +511,6 @@
 .library-file-title {font-weight:650;font-size:.9375rem;line-height:1.5}
 .library-file-description {font-size:.8125rem;line-height:1.6;color:var(--muted);overflow-wrap:anywhere}
 .library-file-meta {display:flex;gap:8px 10px;align-items:center;flex-wrap:wrap;font-size:.75rem;line-height:1.6;color:var(--muted);margin-top:4px}
-.library-demo-badge {color:#d1c196;background:#c5ac7010;border:1px solid #c5ac7030;border-radius:5px;padding:2px 6px}
 .library-file-note {color:#d1c196;font-size:.75rem;line-height:1.7}
 .dataset-library-modal .library-import-error {margin:12px 24px 0;line-height:1.7;max-height:150px;overflow-y:auto}
 .library-select {display:flex;gap:6px;align-items:center;font-size:.8125rem;color:var(--teal);flex-shrink:0}
