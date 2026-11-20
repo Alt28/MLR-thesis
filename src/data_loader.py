@@ -68,6 +68,42 @@ def load_dataset_bytes(name, content, require_target=False):
     return validate_data(data, require_target=require_target)
 
 
+def recorded_target_mask(data):
+    """Zero is a recorded wait. Only nulls and empty/whitespace cells are unknown."""
+    if TARGET not in data:
+        return pd.Series(False, index=data.index)
+    values = data[TARGET]
+    return values.notna() & values.astype(str).str.strip().ne("")
+
+
+def inspect_dataset_bytes(name, content):
+    """Validate an upload and identify its purpose without creating a training run."""
+    data = load_dataset_bytes(name, content, require_target=False)
+    recorded = int(recorded_target_mask(data).sum())
+    if 0 < recorded < len(data):
+        raise ValueError(
+            f"{TARGET} is recorded for {recorded} of {len(data)} rows. "
+            "Separate rows with recorded waits into a training file and rows with blank waits "
+            "into a prediction file. Do not fill unknown waits with zero or estimates."
+        )
+    if recorded:
+        validate_data(data, require_target=True)
+    return {"purpose": "training" if recorded else "prediction", "rows": len(data),
+            "recorded_waits": recorded, "unknown_waits": len(data) - recorded,
+            "target_column_present": TARGET in data.columns}
+
+
+def load_prediction_dataset_bytes(name, content):
+    data = load_dataset_bytes(name, content, require_target=False)
+    if recorded_target_mask(data).any():
+        raise ValueError(
+            f"Prediction-only files must omit {TARGET} or leave every value in that column blank; "
+            "use the training and evaluation workflow for recorded waits."
+        )
+    # An empty target is neither a predictor nor an observed outcome. Never impute it.
+    return data.drop(columns=[TARGET], errors="ignore")
+
+
 def resolve_group_column(data, config):
     """Metadata identifier that keeps related observations in one partition; never a predictor."""
     configured = str(getattr(config, "split_group_column", "") or "").strip()

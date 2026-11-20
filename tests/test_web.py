@@ -1,5 +1,6 @@
 """Temporary artificial fixtures verify the local HTTP workflow, never thesis results."""
 import time
+from io import BytesIO
 from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
@@ -35,6 +36,50 @@ def test_validation_and_templates(web, fixture_data):
     assert web.get("/api/not-a-real-route").status_code == 404
     assert web.post("/api/experiments", headers={"Origin": "https://external.example"}, files={"file": ("a.csv", b"x")}).status_code == 403
     assert web.post("/api/experiments", files={"file": ("corrupt.xlsx", b"not an Excel archive")}).status_code == 400
+
+
+@pytest.mark.parametrize("extension", ["csv", "xlsx"])
+@pytest.mark.parametrize("target", [None, "", "   ", "omitted"])
+def test_blank_wait_upload_is_prediction_without_creating_training_run(web, fixture_data, extension, target):
+    data = fixture_data.head(1).copy()
+    if target == "omitted":
+        data = data.drop(columns="Actual Waiting Time")
+    else:
+        data["Actual Waiting Time"] = target
+    stream = BytesIO()
+    if extension == "xlsx":
+        data.to_excel(stream, index=False)
+        content = stream.getvalue()
+    else:
+        content = data.to_csv(index=False).encode()
+    files = {"file": (f"unknown_wait.{extension}", content)}
+    inspected = web.post("/api/datasets/inspect", files=files)
+    assert inspected.status_code == 200, inspected.text
+    assert inspected.json() == {"purpose": "prediction", "rows": 1, "recorded_waits": 0,
+                                "unknown_waits": 1, "target_column_present": target != "omitted"}
+    assert web.get("/api/experiments").json() == []
+    # Accepting a prediction upload never relaxes the labeled-training requirement.
+    assert web.post("/api/experiments", files=files).status_code == 400
+    assert web.get("/api/experiments").json() == []
+
+
+def test_inspection_rejects_mixed_targets_and_missing_predictors_but_keeps_real_zero(web, fixture_data):
+    def inspect(data):
+        return web.post("/api/datasets/inspect", files={"file": ("test.csv", data.to_csv(index=False).encode())})
+    data = fixture_data.copy()
+    data["Actual Waiting Time"] = 0
+    assert inspect(data).json()["purpose"] == "training"
+    data["Actual Waiting Time"] = [0] + [None] * (len(data) - 1)
+    response = inspect(data)
+    assert response.status_code == 400 and "Separate rows" in response.text
+    data["Actual Waiting Time"] = "not measured"
+    assert inspect(data).status_code == 400
+    data["Actual Waiting Time"] = None
+    missing = inspect(data.drop(columns="Vehicle Frequency"))
+    assert missing.status_code == 400 and "Vehicle Frequency" in missing.text
+    data["Passenger Volume"] = None
+    assert inspect(data).status_code == 400
+    assert web.get("/api/experiments").json() == []
 
 
 def test_deployment_allows_configured_frontend_origin(monkeypatch, tmp_path):
@@ -120,6 +165,27 @@ def test_complete_web_workflow(web, fixture_data):
     assert "Enhanced Predicted Waiting Time" in forecast.json()["columns"]
     assert forecast.json()["station_aggregation"]["station_count"] == 2
     assert "Actual Waiting Time" not in forecast.json()["columns"]
+    before_forecast = web.get(base).json()
+    for extension in ("csv", "xlsx"):
+        blank = labeled.copy()
+        blank["Actual Waiting Time"] = [None, "", "  ", "\t"] * (len(blank) // 4)
+        stream = BytesIO()
+        if extension == "xlsx":
+            blank.to_excel(stream, index=False)
+            content = stream.getvalue()
+        else:
+            content = blank.to_csv(index=False).encode()
+        predicted = web.post(base + "/predict", data={"revision": s["revision"]},
+                             files={"file": (f"blank_waits.{extension}", content)})
+        assert predicted.status_code == 200, predicted.text
+        # Blank targets cannot enter either model or create pretend accuracy scores.
+        assert predicted.json() == forecast.json()
+        assert not any("Error" in column or column in ("MSE", "RMSE") for column in predicted.json()["columns"])
+    assert web.get(base).json() == before_forecast
+    assert web.get("/api/experiments").json()[0]["status"] == "complete"
+    stale_prediction = web.post(base + "/predict", data={"revision": s["revision"] - 1},
+                                files={"file": ("future.csv", target_free)})
+    assert stale_prediction.status_code == 409
     labeled_prediction = web.post(base + "/predict", files={"file": ("labeled.csv", labeled.to_csv(index=False).encode(), "text/csv")})
     assert labeled_prediction.status_code == 400 and "must omit" in labeled_prediction.text
     invalid_prediction = web.post(base + "/predict", files={"file": ("bad.csv", b"invalid\nvalue", "text/csv")})

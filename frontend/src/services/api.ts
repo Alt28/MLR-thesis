@@ -1,4 +1,4 @@
-import type { Experiment, ExperimentListItem, PredictionOutput, ResearchConfig, Row, TableResult, TransportMode } from '../types'
+import type { DatasetInspection, Experiment, ExperimentListItem, PredictionOutput, ResearchConfig, Row, TableResult, TransportMode } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
@@ -44,6 +44,7 @@ export const api = {
     return api.upload(new File([content], filename, {type: content.type}))
   },
   get: (id: string) => request<Experiment>(`/experiments/${id}`),
+  inspect: (file: File) => { const data = new FormData(); data.append('file', file); return request<DatasetInspection>('/datasets/inspect', {method: 'POST', body: data}) },
   upload: (file: File) => { const data = new FormData(); data.append('file', file); return request<Experiment>('/experiments', { method: 'POST', body: data }) },
   configure: (s: Experiment, config: ResearchConfig, approve = false) => request<Experiment>(`/experiments/${s.id}/config`, json('PUT', { revision: s.revision, config, approve_interactions: approve })),
   review: (s: Experiment, record_id: string, action: string, reason: string, corrections: Record<string, string | number>) => request<Experiment>(`/experiments/${s.id}/reviews`, json('PUT', { revision: s.revision, record_id, action, reason, corrections })),
@@ -52,6 +53,7 @@ export const api = {
   predict: (s: Experiment, file: File) => {
     const data = new FormData()
     data.append('file', file)
+    data.append('revision', String(s.revision))
     return request<PredictionOutput>(`/experiments/${s.id}/predict`, {method: 'POST', body: data})
   },
   table: (id: string, name: string, search = '', offset = 0, limit = 25, transport_mode: TransportMode = 'all') => request<TableResult>(`/experiments/${id}/tables/${name}?${new URLSearchParams({search, transport_mode, offset: String(offset), limit: String(limit)})}`),

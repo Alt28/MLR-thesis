@@ -1,5 +1,22 @@
 # Philippine data search and suitability review
 
+## Prediction-only follow-up: 20 November 2026
+
+The application now accepts an entirely blank or omitted Actual Waiting Time for predictions from saved models. This removes the target requirement for prediction uploads, not the requirement for six aligned predictors. This follow-up did not verify a complete Philippine bus/train prediction dataset with those six measurements.
+
+Two source workbooks were saved to `C:/Users/clarence/Downloads/real_philippine_transport_sources_2026-11-20/`. Neither is a complete model input and neither was added to the application's dataset library:
+
+- `train_recorded_sources_and_weather_REFERENCE.xlsx`: 651 MRT-3 Taft Avenue hourly slots for July 2023, each matched to one observed RPLL airport weather report at exactly the interval start in Asia/Manila time. Source station entries/exits are preserved. After-midnight slots are excluded because the reporting-day convention is unresolved. Airport weather is contextual, not represented as a station measurement; entries have no train direction and are not renamed to the study's preceding-hour passenger-arrival variable. Waiting time remains blank.
+- `bus_recorded_survey_sources_REFERENCE.xlsx`: 12 published direction/hour bus counts, 80 survey-derived station dwell means, and 9 survey-coverage records. The count summaries do not specify their exact observation dates. No weather join was made, and train entries were not substituted for bus passenger arrivals.
+
+The train source is the [MRT-3 report repository](https://github.com/ongods/mrt3-ridership-data/tree/f4f1b40413efef0e7381892f67e43876ea3a99f5), already checked against its supplied workbooks locally. Its publisher attributes the files to DOTr FOI; the release letter/request number was not supplied, so full chain of custody remains unverified. Weather was downloaded from the [Iowa Environmental Mesonet observation archive](https://mesonet.agron.iastate.edu/request/download.phtml?network=PH__ASOS), using its [documented API](https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?help). The 775 RPLL reports cover July 2023; missing weather codes are not treated as clear weather, and unavailable non-US precipitation amounts are not filled with zero.
+
+Bus facts come from [Ollero, Vergel and Tiglao (2024), Philippine Transportation Journal 7(2)](https://ncts.upd.edu.ph/tssp/wp-content/uploads/2025/01/TSSP2024-Vol7-No2_01-Ollero-Vergel-and-Tiglao.pdf), Tables 2-4, excluding simulated scenario results. Dwell time is not passenger waiting time.
+
+Additional candidates examined included Mendeley's Cebu transport-mode-choice survey (preferences rather than operational measurements), annual transport/AADT datasets (wrong time granularity), GTFS (schedules rather than observed vehicle events), and the public STPH trip-segmentation sample. The inspected STPH Route 9 CSV contained TEST identifiers, mixed regions, and unresolved mode/timezone; it was not accepted as verified recorded bus data. A successful FOI webpage without a downloadable attachment was not treated as a delivered dataset.
+
+`scripts/build_real_source_review.py` generates the two workbooks from retained local sources and the downloaded weather CSV. It checks unchanged rail counts, unique record IDs, exact weather timestamps, blank targets, bus source row counts, and no join multiplication. The package includes source URLs, source row references, SHA-256 hashes, and a six-field readiness check. **Model-ready rows: 0.** Matching traffic observations, observed service frequency, and predictor-definition alignment remain unresolved. This is a documented partial source preparation, not a completed forecasting dataset or evidence of model accuracy.
+
 Checked 6 November 2026. Scope: Philippine datasets only, as requested.
 
 **No complete, verified public dataset was found in this search containing the six predictors and measured passenger waiting time aligned to the same observations.** The downloaded files below are useful supporting data. They cannot truthfully be turned into an analysis-ready file by inserting invented weather, traffic, passenger counts, or waiting times.

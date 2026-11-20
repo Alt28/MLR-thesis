@@ -9,40 +9,47 @@ import { DataTable } from './DataTable'
 import { DatasetTransport } from './TransportOutputs'
 import { CloudImport } from './CloudImport'
 import { Modal, format } from './Common'
+import type { PredictionDataset } from './PredictionOnly'
 
-export function DatasetInput({w, rejected, upload, usePrevious}: {w: Workspace; rejected: string; upload: (file: File) => void; usePrevious: () => void}) {
+export function DatasetInput({w, predictionDataset = null, rejected, upload, usePrevious, imported = usePrevious}: {w: Workspace; predictionDataset?: PredictionDataset | null; rejected: string; upload: (file: File) => void; usePrevious: () => void; imported?: () => void}) {
   const s = w.experiment
+  const hasDataset = !!s || !!predictionDataset
   const input = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<Row[]>([])
   const [previewError, setPreviewError] = useState('')
   const [full, setFull] = useState(false)
   useEffect(() => {
     let active = true; setPreview([]); setPreviewError('')
-    if (s) api.table(s.id, 'dataset', '', 0, 3).then(data => {if(active) setPreview(data.rows)}).catch(e=>{if(active) setPreviewError(e.message)})
+    if (s && !predictionDataset) api.table(s.id, 'dataset', '', 0, 3).then(data => {if(active) setPreview(data.rows)}).catch(e=>{if(active) setPreviewError(e.message)})
     return () => {active=false}
-  }, [s?.id])
+  }, [s?.id, predictionDataset])
   return <div className="dataset-input">
-    <div className={`dataset-drop import-area ${s ? 'has-dataset' : ''}`} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault(); if(!w.busy && e.dataTransfer.files[0]) upload(e.dataTransfer.files[0])}}>
-      {!s && <div className="import-intro"><Upload size={24} strokeWidth={1.6}/><h3>Choose your dataset</h3><p>Drop a file here or choose an import option.</p></div>}
+    <div className={`dataset-drop import-area ${hasDataset ? 'has-dataset' : ''}`} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault(); if(!w.busy && e.dataTransfer.files[0]) upload(e.dataTransfer.files[0])}}>
+      {!hasDataset && <div className="import-intro"><Upload size={24} strokeWidth={1.6}/><h3>Choose your dataset</h3><p>Drop a file here or choose an import option.</p></div>}
       <div className="dataset-import-actions">
-        <button className="button local-upload-trigger" disabled={w.busy} onClick={()=>input.current?.click()}><Upload size={17}/>{w.operation === 'upload' ? 'Checking file...' : s ? 'Replace Dataset' : 'Upload Dataset'}</button>
-        <CloudImport w={w} imported={usePrevious}/>
+        <button className="button local-upload-trigger" disabled={w.busy} onClick={()=>input.current?.click()}><Upload size={17}/>{w.operation === 'upload' ? 'Checking file...' : hasDataset ? 'Replace Dataset' : 'Upload Dataset'}</button>
+        <CloudImport w={w} imported={imported}/>
       </div>
       <div className="import-help"><span>CSV or XLSX · Up to 25 MB</span><details className="template-options"><summary>Templates</summary><div><a href="/api/templates/csv">Download CSV</a><a href="/api/templates/xlsx">Download Excel</a></div></details></div>
     </div>
     <input ref={input} className="sr-only" type="file" accept=".csv,.xlsx" aria-label="Upload transportation dataset" disabled={w.busy} onChange={e=>{const file=e.target.files?.[0]; if(file) upload(file); e.target.value=''}}/>
-    {rejected && <div className="inline-error" role="alert"><strong>We couldn't use {rejected}</strong><p>{friendlyError(w.error, 'dataset')}</p>{s && <button className="text-button" onClick={usePrevious}>Use the previous valid dataset</button>}</div>}
-    {s && !rejected && <>
+    {rejected && <div className="inline-error" role="alert"><strong>We couldn't use {rejected}</strong><p>{friendlyError(w.error, 'dataset')}</p>{hasDataset && <button className="text-button" onClick={usePrevious}>Use the previous valid dataset</button>}</div>}
+    {predictionDataset && !rejected && <div className="dataset-file-card" role="status">
+      <div className="file-summary"><FileSpreadsheet size={23}/><div><strong title={predictionDataset.file.name}>{predictionDataset.file.name}</strong><span>{predictionDataset.inspection.rows.toLocaleString()} observations</span></div></div>
+      <div className="dataset-validation"><span className="validation-status"><CheckCircle2 size={14}/> Format valid</span><span className="validation-note">6/6 predictors detected</span></div>
+      <p className="section-caption">Actual Waiting Time is blank. Analyze Dataset will calculate separate Traditional and Enhanced MLR predictions.</p>
+    </div>}
+    {s && !predictionDataset && !rejected && <>
       <div className="dataset-file-card">
         <div className="file-summary"><FileSpreadsheet size={23}/><div><strong title={s.name}>{s.name}</strong><span>{s.records.toLocaleString()} observations</span></div></div>
-        <div className="dataset-validation"><span className="validation-status"><CheckCircle2 size={14}/> Format valid</span><span className="validation-note">7/7 required variables detected</span></div>
+        <div className="dataset-validation"><span className="validation-status"><CheckCircle2 size={14}/> Format valid</span><span className="validation-note">6 predictors + recorded waiting time</span></div>
         <DatasetTransport s={s} w={w}/>
         {s.provenance && s.provenance.status !== 'recorded_declared' && <details className="dataset-source-note"><summary>Dataset source notes</summary><p>{s.provenance.message}</p><p>See Research documentation in Advanced Settings for the source details.</p></details>}
       </div>
       <div className="preview-heading"><h3>Dataset preview</h3><button className="text-button" onClick={()=>setFull(true)}>View Full Dataset</button></div>
       {previewError ? <p className="inline-error" role="alert">{previewError}</p> : preview.length ? <div className="table-scroll preview-table" tabIndex={0} aria-label="Dataset preview, scroll to view all variables"><table><thead><tr>{[...PREDICTORS,TARGET].map(c=><th key={c}>{c}</th>)}</tr></thead><tbody>{preview.map((row,i)=><tr key={i}>{[...PREDICTORS,TARGET].map(c=><td key={c}>{format(row[c])}</td>)}</tr>)}</tbody></table></div> : <p role="status">Loading preview…</p>}<p className="small-text muted">First 3 observations · Scroll to see all columns</p>
     </>}
-    <details className="disclosure required-variables"><summary>Required variables</summary><div className="disclosure-body"><ul>{[...PREDICTORS,TARGET].map(c=><li key={c}>{c}{c===TARGET ? ' (minutes)' : ''}</li>)}</ul><p>Only these six predictors enter the models. Extra columns are kept as metadata. Add Station ID (or Station) to summarize held-out scores by station.</p></div></details>
+    <details className="disclosure required-variables"><summary>Required variables</summary><div className="disclosure-body"><ul>{PREDICTORS.map(c=><li key={c}>{c}</li>)}</ul><p><strong>{TARGET} (minutes)</strong> is the target. It is required to train and measure accuracy. Leave it blank or omit the column when predicting new observations with trained models.</p><p>Extra columns are kept as metadata. Add Station ID (or Station) to summarize scores by station.</p></div></details>
     {full && s && <Modal title="Dataset preview" close={()=>setFull(false)}><div className="modal-body"><DataTable s={s} name="dataset"/></div></Modal>}
   </div>
 }

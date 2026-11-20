@@ -36,7 +36,11 @@ export interface Experiment {
   classification_version?: number; classification_stale?: boolean;
   distribution: Record<string, number>; evidence: Row[]; thresholds: Row[]; figures: string[]; export_ready: boolean;
 }
-export interface ExperimentListItem { id: string; name: string; created: string; revision: number }
+export interface ExperimentListItem { id: string; name: string; created: string; revision: number; status: Experiment['status'] }
+export interface DatasetInspection {
+  purpose: 'training' | 'prediction'; rows: number; recorded_waits: number; unknown_waits: number;
+  target_column_present: boolean;
+}
 export interface TableResult { columns: string[]; rows: Row[]; total: number; offset: number }
 export interface PredictionOutput {
   columns: string[]; rows: Row[]; station_summary: Row[];

@@ -10,7 +10,6 @@ import { StationCondition } from './StationCondition'
 import { TransportOutputs, TransportContext, observationMode } from './TransportOutputs'
 import { ControlledComparisons, StatisticalChecks } from './ResearchProtocol'
 import { ExportResults, ResearchDetails } from './ResearchDetails'
-import { PredictionOnly } from './PredictionOnly'
 import { PredictionExplanations } from './PredictionExplanations'
 
 const minutes = (value: unknown) => typeof value === 'number'
@@ -88,7 +87,6 @@ export function AnalysisResults({s}: {s: Experiment}) {
         <ControlledComparisons s={s}/>
         <StatisticalChecks s={s}/>
       </section>
-      <PredictionOnly s={s}/>
       <section className="prediction-details">
         <div className="result-section-heading"><h3>Prediction Details</h3></div>
         {row && <><p className="observation-label">Observation <strong>{String(row['Record ID'])}</strong>{s.metadata.map(k => row[k] != null ? <span key={k}>{k}: {String(row[k])}</span> : null)}</p>

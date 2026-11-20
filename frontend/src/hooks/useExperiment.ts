@@ -11,7 +11,11 @@ export function useExperiment() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [connected, setConnected] = useState(false)
-  const accept = useCallback((s: Experiment) => { setExperiment(s); localStorage.setItem('transit-experiment', s.id); setConnected(true) }, [])
+  const accept = useCallback((s: Experiment) => {
+    setExperiment(s)
+    setExperiments(items => items.map(item => item.id === s.id ? {id: s.id, name: s.name, created: s.created, revision: s.revision, status: s.status} : item))
+    localStorage.setItem('transit-experiment', s.id); setConnected(true)
+  }, [])
   useEffect(() => {
     let alive = true
     api.list().then(async list => {

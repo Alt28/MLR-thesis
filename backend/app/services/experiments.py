@@ -10,7 +10,7 @@ import joblib
 import pandas as pd
 from fastapi import HTTPException
 from src.config import ResearchConfig, ROW_ID, PREDICTORS, TARGET
-from src.data_loader import load_dataset_bytes
+from src.data_loader import load_prediction_dataset_bytes
 from src.experiment import prepare_experiment, run_experiment
 from src.irregularity_detection import apply_reviews, review_fingerprint
 from src.station_classification import StationClassifier, CLASSIFICATION_VERSION, aggregate_station_scores
@@ -106,7 +106,7 @@ class ExperimentStore:
         items = []
         for path in self.root.glob("*/metadata.json"):
             metadata = json.loads(path.read_text(encoding="utf-8"))
-            items.append({k: metadata[k] for k in ("id", "name", "created", "revision")})
+            items.append({k: metadata[k] for k in ("id", "name", "created", "revision", "status")})
         return sorted(items, key=lambda s: s["created"], reverse=True)
 
     def check(self, s, revision):
@@ -227,16 +227,16 @@ class ExperimentStore:
         if record_id not in p.original.index: raise HTTPException(404, "Record not found.")
         return {"original": records(p.original.loc[[record_id]])[0], "decision": s["decisions"].get(record_id), "flagged": record_id in set(p.flags[ROW_ID])}
 
-    def predict(self, sid, name, content):
+    def predict(self, sid, name, content, revision=None):
         with self.lock:
             s = self.get(sid)
+            if revision is not None:
+                self.check(s, revision)
             if s["status"] != "complete" or s["result"] is None:
                 raise HTTPException(409, "Complete both model fits before predicting new observations.")
             if getattr(s["result"].classifier, "method_version", 1) != CLASSIFICATION_VERSION:
                 raise HTTPException(409, "Re-run the analysis to update the saved classification rules before predicting.")
-            data = load_dataset_bytes(name, content, require_target=False)
-            if TARGET in data.columns:
-                raise ValueError(f"Prediction-only files must omit {TARGET}; use the evaluation dataset workflow for labeled observations.")
+            data = load_prediction_dataset_bytes(name, content)
             predictions = s["result"].models.predict(data)
             classified = s["result"].classifier.classify(
                 data, predictions["Enhanced Predicted Waiting Time"])

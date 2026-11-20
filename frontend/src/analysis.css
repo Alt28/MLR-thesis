@@ -94,10 +94,28 @@
 .model-comparison td {font-size:1.25rem;font-variant-numeric:tabular-nums;font-weight:600;color:var(--text)}
 .model-comparison tbody th {background:transparent;font-size:0.875rem;color:var(--text)}
 .model-comparison th small {display:block;font-size:0.8125rem;font-weight:400;color:var(--muted);margin-top:3px}
-.prediction-only {border-top:1px solid var(--border);margin-top:26px;padding-top:24px}
-.prediction-only h3 {font-size:1rem;margin:0 0 8px}
-.prediction-upload {position:relative;overflow:hidden;cursor:pointer}
-.prediction-upload input {position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.uploaded-predictions {min-width:0}
+.uploaded-predictions h3 {font-size:1rem;margin:0 0 8px}
+.sop-heading h2 {font-size:1.35rem;letter-spacing:-.025em;margin:0 0 10px}
+.prediction-model label,.forecast-scoring label,.sop-evidence label {font-size:.875rem}
+.prediction-model select,.forecast-scoring select,.sop-evidence select {max-width:100%;width:100%}
+.forecast-result-count {font-weight:600;margin-top:26px}
+.forecast-scoring {margin-top:22px}
+.sop-solutions {margin-top:36px}
+.sop-heading p {color:var(--muted);font-size:.875rem;line-height:1.7;max-width:850px;margin:0 0 20px}
+.sop-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.sop-card {min-width:0;padding:22px;display:flex;flex-direction:column;align-items:flex-start}
+.sop-card h3 {font-size:1rem;line-height:1.5;margin:0 0 12px}
+.sop-card p {font-size:.8125rem;line-height:1.75;color:var(--muted);margin:0 0 14px}
+.sop-card strong {color:var(--text);font-weight:550}
+.sop-card .small-text {display:block}
+.sop-card .sop-status {color:var(--text);border-left:2px solid var(--teal);padding-left:10px}
+.sop-card .button {margin-top:auto}
+.sop-card .text-button {margin-top:14px}
+.sop-evidence .modal-body>p {font-size:.875rem;line-height:1.8}
+.sop-evidence .data-table {margin-top:18px}
+.sop-terms {font-size:.875rem;line-height:1.9;padding-left:20px;overflow-wrap:anywhere}
+@media(max-width:900px) {.sop-grid {grid-template-columns:1fr}.sop-card {padding:20px}}
 .prediction-station-summary {margin:20px 0}
 .prediction-station-summary h4 {font-size:.875rem;margin:0 0 8px}
 .comparison-conclusion {font-size:0.875rem;line-height:1.8;color:var(--text);padding:12px 14px;background:#1b2931;border-radius:7px;margin:12px 0 0}

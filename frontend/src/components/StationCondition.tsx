@@ -76,7 +76,7 @@ function factorRule(s: Experiment, row: Row, factor: string, score: number | nul
   return {condition: ranges[bin], source: `${quartiles}. ${q.Direction === 'lower' ? 'Lower' : 'Higher'} values → higher severity. ${q['Direction Source']}.${adjustedNote}`}
 }
 
-export function StationCondition({s, row, summaryOnly = false}: {s: Experiment; row: Row; summaryOnly?: boolean}) {
+export function StationCondition({s, row, summaryOnly = false, expanded = false}: {s: Experiment; row: Row; summaryOnly?: boolean; expanded?: boolean}) {
   const score = typeof row['Multi-Factor Station Score'] === 'number' ? row['Multi-Factor Station Score'] : null
   const label = score == null ? DECISION : String(row['Overall Station Classification'])
   const band = score == null ? -1 : LABELS.indexOf(label)
@@ -128,7 +128,7 @@ export function StationCondition({s, row, summaryOnly = false}: {s: Experiment; 
     <p className="station-context">Based on the Enhanced MLR predicted wait and six transportation factors for this observation.</p>
     <p className="sr-only" role="status">Observation {String(row['Record ID'])}: {label}. Multi-factor score {fixed(score)}.</p>
     {score == null && <p className="decision-note">View Threshold Details for the unresolved factors. Constant variables require suitable varied observations; changing a direction cannot create variation. Undefined rules or units can be reviewed in Advanced Settings.</p>}
-    <details className="disclosure classification-details">
+    <details className="disclosure classification-details" open={expanded || undefined}>
       <summary>View Threshold Details</summary>
       <div className="disclosure-body">
         <p className="section-caption station-observation">Observation <strong>{String(row['Record ID'])}</strong> · Enhanced prediction + six transportation factors</p>

@@ -1,11 +1,11 @@
 from pathlib import Path
 from typing import Literal
-from fastapi import APIRouter, Request, UploadFile, File, Query, HTTPException
+from fastapi import APIRouter, Request, UploadFile, File, Form, Query, HTTPException
 from fastapi.responses import FileResponse
 from ..schemas.requests import AnalysisRequest, CloudImportRequest, ConfigRequest, ReviewRequest, TrainingRequest
 from ..config import PROJECT_ROOT, MAX_UPLOAD_BYTES
 from src.config import ResearchConfig, PREDICTORS, TARGET
-from src.data_loader import write_templates
+from src.data_loader import inspect_dataset_bytes, write_templates
 
 router = APIRouter(prefix="/api")
 
@@ -31,6 +31,16 @@ def template(extension: str):
 @router.get("/experiments")
 def experiments(request: Request):
     return request.app.state.store.list()
+
+
+@router.post("/datasets/inspect")
+async def inspect_dataset(file: UploadFile = File(...)):
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    await file.close()
+    if len(content) > MAX_UPLOAD_BYTES: raise HTTPException(413, "The dataset exceeds the 25 MB upload limit.")
+    if not content: raise ValueError("Choose a nonempty dataset.")
+    from starlette.concurrency import run_in_threadpool
+    return await run_in_threadpool(inspect_dataset_bytes, file.filename or "dataset.csv", content)
 
 
 @router.post("/experiments", status_code=201)
@@ -79,14 +89,14 @@ def analyze(sid: str, payload: AnalysisRequest, request: Request):
 
 
 @router.post("/experiments/{sid}/predict")
-async def predict(sid: str, request: Request, file: UploadFile = File(...)):
+async def predict(sid: str, request: Request, file: UploadFile = File(...), revision: int | None = Form(None, ge=1)):
     content = await file.read(MAX_UPLOAD_BYTES + 1)
     await file.close()
     if len(content) > MAX_UPLOAD_BYTES: raise HTTPException(413, "The prediction dataset exceeds the 25 MB upload limit.")
     if not content: raise ValueError("Choose a nonempty prediction dataset.")
     from starlette.concurrency import run_in_threadpool
     return await run_in_threadpool(
-        request.app.state.store.predict, sid, file.filename or "prediction.csv", content)
+        request.app.state.store.predict, sid, file.filename or "prediction.csv", content, revision)
 
 
 @router.get("/experiments/{sid}/tables/{name}")
