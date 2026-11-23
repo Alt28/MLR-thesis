@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from sklearn.linear_model import LinearRegression
-from .config import TARGET
+from .config import TARGET, SCHEMA_VERSION
 from .interaction_terms import FeatureBuilder
 
 INFERENCE_COLUMNS = ["Std. Error", "t Statistic", "p-value", "95% CI Lower", "95% CI Upper"]
@@ -34,10 +34,39 @@ def ols_inference(x, y, model):
     return rows, df
 
 
+def _vif_from_inverse(values):
+    """Exact identity VIF_j = [inv(R)]_jj for the correlation matrix R of the non-constant columns.
+
+    One matrix inverse replaces one regression per column (hundreds with station dummies).
+    Returns None when R is near-singular, so the per-column regressions decide collinearity.
+    """
+    keep = np.ptp(values, axis=0) > 0 if len(values) else np.zeros(values.shape[1], bool)
+    result = np.full(values.shape[1], np.nan)
+    if not keep.any():
+        return result
+    centered = values[:, keep] - values[:, keep].mean(axis=0)
+    scale = np.sqrt((centered ** 2).sum(axis=0))
+    corr = (centered / scale).T @ (centered / scale)
+    if np.linalg.eigvalsh(corr).min() < 1e-9:
+        return None
+    result[keep] = np.diag(np.linalg.inv(corr))
+    return result
+
+
 def variance_inflation(x):
     """VIF_j = 1 / (1 - R²_j), regressing column j on the other design columns with an intercept."""
     rows = []
     values = x.to_numpy(dtype=float)
+    fast = _vif_from_inverse(values)
+    if fast is not None:
+        for term, vif in zip(x.columns, fast):
+            if np.isnan(vif):
+                rows.append({"Term": term, "VIF": np.nan, "Note": "Constant in training data"})
+            elif vif >= 1e12:
+                rows.append({"Term": term, "VIF": np.nan, "Note": "Perfectly collinear with other terms"})
+            else:
+                rows.append({"Term": term, "VIF": vif, "Note": "High (> 10)" if vif > 10 else "Moderate (5–10)" if vif > 5 else ""})
+        return rows
     for j, term in enumerate(x.columns):
         target = values[:, j]
         if np.ptp(target) == 0:
@@ -59,6 +88,7 @@ class MLRModels:
         self.config = config
 
     def fit(self, training, selection="both", inference=True):
+        self.schema_version = SCHEMA_VERSION
         if selection not in ("baseline", "enhanced", "both"):
             raise ValueError("Select baseline, enhanced, or both models.")
         self.features = FeatureBuilder(self.config).fit(training)
@@ -99,7 +129,13 @@ class MLRModels:
                 self.warnings.append(f"{col}: only one training category, so its contrast and corresponding interactions cannot be estimated.")
         return self
 
-    def predict(self, data):
+    def predict(self, data, strict_categories=False):
+        if getattr(self, "schema_version", None) != SCHEMA_VERSION:
+            raise ValueError("Incompatible saved model schema. Train new models using the current six predictors.")
+        unknown = self.features.unknown_categories(data)
+        if strict_categories and unknown.ne("").any():
+            raise ValueError("Unseen station or category: " + "; ".join(unknown[unknown.ne("")].unique()[:5]) +
+                             ". This model has no fitted contrast for these values. Use a model trained on these stations/categories or retrain with recorded waits.")
         output = pd.DataFrame(index=data.index)
         for label, enhanced, prefix in [("Baseline MLR", False, "Baseline"), ("Enhanced MLR", True, "Enhanced")]:
             if label not in self.models:
@@ -111,7 +147,7 @@ class MLRModels:
             output[f"{prefix} Negative Prediction"] = prediction < 0
             if TARGET in data:
                 output[f"{prefix} Error (actual - predicted)"] = data[TARGET] - prediction
-        output["Unseen Categories"] = self.features.unknown_categories(data)
+        output["Unseen Categories"] = unknown
         return output
 
     def coefficients(self):

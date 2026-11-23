@@ -2,15 +2,11 @@
 from pathlib import Path
 import pandas as pd
 
-FIELDS = {'vehicle frequency': 'vehicle_frequency_unit', 'route distance': 'route_distance_unit'}
+FIELDS = {'vehicle frequency': 'vehicle_frequency_unit', 'observed vehicle frequency': 'vehicle_frequency_unit'}
 UNITS = {
     'vehicle_frequency_unit': {
         'vehicles/hour': 'vehicles/hour', 'vehicles per hour': 'vehicles/hour',
-        'available vehicles': 'available vehicles (count)',
-        'number of available vehicles': 'available vehicles (count)',
-        'vehicles': 'available vehicles (count)',
     },
-    'route_distance_unit': {'km': 'km', 'kilometers': 'km', 'kilometres': 'km', 'm': 'm', 'meters': 'm', 'miles': 'miles'},
 }
 
 
@@ -36,5 +32,7 @@ def documented_units(path):
             if key and unit:
                 # Unknown declarations also count as conflicts; never silently replace them.
                 declared[key].add(UNITS[key].get(unit, 'unsupported:' + unit))
+    if any(any(v.startswith('unsupported:') for v in values) for values in declared.values()):
+        raise ValueError('Vehicle Frequency must be documented as actual recorded operations in vehicles/hour. The workbook declares an incompatible unit.')
     return {key: next(iter(values)) for key, values in declared.items()
             if len(values) == 1 and not next(iter(values)).startswith('unsupported:')}

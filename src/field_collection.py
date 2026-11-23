@@ -1,7 +1,6 @@
 """Field-collection workbook: raw on-site tallies and stopwatch times -> model-ready recorded dataset.
 
-Observers record only what they see: 15-minute passenger and vehicle tallies with the weather and traffic at
-each block, and the arrival and boarding time of each sampled passenger. Every model column is then computed
+Observers record only what they see: 15-minute passenger and vehicle tallies for completed observation windows, and the arrival and boarding time of each sampled passenger. Every model column is then computed
 here with the operational definitions of Table 3.1, so no value is typed in by hand or estimated.
 """
 from datetime import date, datetime, time, timedelta
@@ -13,76 +12,45 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.worksheet.datavalidation import DataValidation
 
-from .config import ROW_ID, TARGET
+from .config import ROW_ID, TARGET, CATEGORY_VALUES
 from .data_loader import validate_data
 
 BLOCK_MINUTES = 15
 WINDOW_BLOCKS = 4  # four completed 15-minute blocks = the 60-minute window W of Table 3.1
-WEATHER = ["Clear", "Cloudy", "Rain", "Heavy Rain"]
-TRAFFIC = ["Light", "Moderate", "Heavy"]
 MODES = ["Bus", "Train"]
-PERIODS = [("Peak Morning", "06:00", "09:00"), ("Mid-Day", "09:00", "16:00"),
-           ("Peak Evening", "16:00", "20:00"), ("Night", "20:00", "06:00")]
+# Proposed collection convention, exported in Lists; existing source-specific boundaries must be documented.
+PERIODS = [("Morning", "05:00", "10:00"), ("Midday", "10:00", "14:00"),
+           ("Afternoon", "14:00", "18:00"), ("Evening", "18:00", "22:00"), ("Night", "22:00", "05:00")]
 MIN_ROWS = 400
 MIN_PER_CATEGORY = 20
 MIN_STATIONS = 4
 MAX_ROWS = 3000
 
-STATION_COLUMNS = ["Station ID", "Station Name", "Transport Mode", "Route", "Direction",
-                   "Route Distance (km)", "Route Distance Source"]
-COUNT_COLUMNS = ["Station ID", "Date", "Block Start", "Passenger Arrivals", "Vehicles Serving",
-                 "Weather Condition", "Traffic Condition", "Observer", "Notes"]
+STATION_COLUMNS = ["Station ID", "Station Name", "Transport Mode", "Route", "Direction"]
+COUNT_COLUMNS = ["Station ID", "Date", "Block Start", "Passenger Arrivals", "Vehicles Serving", "Observer", "Notes"]
 PASSENGER_COLUMNS = ["Station ID", "Date", "Arrival Time", "Boarding Time", "Full Vehicles Missed",
                      "Observer", "Notes", "Wait (min) - check only"]
 
 SOURCE_ROWS = [
-    ("Traffic Condition", "category", "Observed road congestion at the stop during the arrival's 15-minute block; Light / Moderate / Heavy.",
-     "Observer, checked against the Google Maps live traffic layer (green = Light, orange = Moderate, red or dark red = Heavy)."),
-    ("Weather Condition", "category", "Observed weather at the stop during the arrival's 15-minute block; Clear / Cloudy / Rain / Heavy Rain.",
-     "Observer, checked against PAGASA weather and rainfall advisories (https://www.pagasa.dost.gov.ph/)."),
-    ("Passenger Volume", "passengers per 60-minute window",
-     "Passengers arriving for the same service, stop, and direction in the four completed 15-minute blocks before the sampled arrival.",
-     "Observer tally counter, 15-minute blocks."),
-    ("Route Distance", "km", "Total length of the selected service route in the observed direction.",
-     "Recorded per station in the Stations sheet with its source (official line or route map, or Google Maps route measurement)."),
-    ("Vehicle Frequency", "vehicles/hour",
-     "60 × N / W, where N is the number of serving vehicles counted in the four completed 15-minute blocks before the arrival and W = 60 minutes.",
-     "Observer tally counter, 15-minute blocks. Observed, not scheduled."),
-    ("Time of Day", "category", "Period containing the passenger arrival time, using the fixed boundaries in the Lists sheet.",
-     "Derived from Arrival Time."),
-    ("Actual Waiting Time", "minutes",
-     "Boarding Time minus Arrival Time of the sampled passenger, including waiting caused by full vehicles.",
-     "Observer stopwatch / phone clock."),
+    ("Passenger Volume", "passengers per 60-minute window", "Recorded arrivals in four completed 15-minute blocks before the sampled arrival.", "Observer tally"),
+    ("Vehicle Frequency", "vehicles/hour", "Actual serving vehicles in the same four completed blocks; not scheduled service or available fleet.", "Observer tally"),
+    ("Station / Stop", "category", "Identifier of the observed station or stop and direction.", "Stations sheet"),
+    ("Time of Day", "category", "Period containing the passenger arrival using documented Lists boundaries.", "Arrival timestamp"),
+    ("Day of Week", "category", "Local weekday of the passenger arrival.", "Arrival timestamp"),
+    ("Month of Year", "category", "Local calendar month of the passenger arrival.", "Arrival timestamp"),
+    ("Actual Waiting Time", "minutes", "Recorded boarding timestamp minus passenger arrival timestamp.", "Observer stopwatch / clock"),
 ]
-
 INSTRUCTIONS = [
-    "FIELD COLLECTION WORKBOOK - Enhanced MLR train and bus wait-time study",
-    "",
-    "WHAT TO RECORD (only what you observe; never estimate or copy values from other sources)",
-    "1. Stations sheet: one row per stop/station and direction you observe. Fill Route Distance (km) and where the distance came from.",
-    "2. Counts sheet (Counter role): every 15 minutes write one row - passengers who arrived for the observed service and direction, "
-    "vehicles that stopped and served that direction, and the weather and traffic in that block. Block Start must be :00, :15, :30, or :45.",
-    "3. Passengers sheet (Timer role): pick the next passenger who joins the queue, write the time they arrive at the waiting area "
-    "and the time they board. If a full vehicle passes them, keep timing and add 1 to Full Vehicles Missed.",
-    "",
-    "IMPORTANT TIMING RULE",
-    "Start counting at least 60 minutes before you start timing passengers. Each passenger needs the four complete 15-minute "
-    "count blocks before their arrival block; passengers without them are excluded automatically with a reason.",
-    "",
-    "TARGETS",
-    f"- At least {MIN_ROWS} valid passenger rows in total (about 21 model terms x 10-20 rows per term).",
-    f"- At least {MIN_PER_CATEGORY} rows for every weather, traffic, and time-of-day category: include peak and off-peak hours and some rainy days.",
-    f"- At least {MIN_STATIONS} stations (6 or more is better), with both Bus and Train, so the grouped split by Station ID works.",
-    "- Example pace: one timer records about 6-10 passengers per hour, so 400 rows is roughly 25 hours with two timers.",
-    "",
-    "ETHICS (Republic Act 10173, Data Privacy Act of 2012)",
-    "Record times and counts only. No names, faces, photos, or other personal information. Ask station management or the "
-    "operator before observing inside paid areas of train stations.",
-    "",
-    "AFTER COLLECTION",
-    "Run:  .\\.venv\\Scripts\\python.exe scripts\\field_data.py build <this workbook>",
-    "It writes data\\recorded_dataset.xlsx (ready to upload) plus a list of excluded rows and a readiness report.",
-    "Do not edit the Sources_Methodology unit rows; the system reads the units from them.",
+    "FIELD COLLECTION WORKBOOK - six-predictor Bus or Train waiting-time study",
+    "Use a separate workbook and model for Bus and Train. Never estimate waiting times from vehicle frequency.",
+    "Stations: record a stop/station identifier, mode, route, and direction.",
+    "Counts: record passenger arrivals and actual serving vehicles in complete 15-minute blocks.",
+    "Passengers: record arrival and boarding timestamps for each sampled passenger; keep timing if full vehicles pass.",
+    "Start counts at least 60 minutes before timing passengers. Only the four completed blocks before arrival are used.",
+    "Review and document the Time of Day boundaries in Lists before collecting data. They are not severity thresholds.",
+    "Record counts and timestamps only. No passenger names or other identifying details are needed.",
+    "Calendar and station categories are not ordered severity levels. Classification mappings need documented approval.",
+    "After collection run scripts/field_data.py build with this workbook. No source records are invented.",
 ]
 
 
@@ -116,15 +84,15 @@ def create_workbook(path, overwrite=False):
         if len(first) >= 5 and first.isupper():
             row[0].font = Font(bold=True)
 
-    stations = sheet("Stations", STATION_COLUMNS, [12, 28, 14, 22, 18, 18, 50])
-    counts = sheet("Counts", COUNT_COLUMNS, [12, 13, 12, 18, 16, 18, 17, 14, 40])
+    stations = sheet("Stations", STATION_COLUMNS, [12, 28, 14, 22, 18])
+    counts = sheet("Counts", COUNT_COLUMNS, [12, 13, 12, 18, 16, 14, 40])
     passengers = sheet("Passengers", PASSENGER_COLUMNS, [12, 13, 13, 14, 19, 14, 40, 20])
 
-    lists = sheet("Lists", ["Weather Condition", "Traffic Condition", "Transport Mode", "",
+    lists = sheet("Lists", ["Day of Week", "Month of Year", "Transport Mode", "",
                             "Time of Day", "Start (HH:MM)", "End (HH:MM)"], [18, 18, 15, 3, 16, 14, 14])
-    for i in range(max(len(WEATHER), len(TRAFFIC), len(PERIODS))):
-        lists.append([WEATHER[i] if i < len(WEATHER) else None, TRAFFIC[i] if i < len(TRAFFIC) else None,
-                      MODES[i] if i < len(MODES) else None, None,
+    days, months = CATEGORY_VALUES["Day of Week"], CATEGORY_VALUES["Month of Year"]
+    for i in range(12):
+        lists.append([days[i] if i < 7 else None, months[i], MODES[i] if i < 2 else None, None,
                       *(PERIODS[i] if i < len(PERIODS) else (None, None, None))])
 
     methodology = sheet("Sources_Methodology", ["Variable", "Unit", "Definition", "Source"], [22, 30, 80, 80])
@@ -150,13 +118,8 @@ def create_workbook(path, overwrite=False):
         rule.add(f"{column}2:{column}{last}")
 
     dropdown(stations, "C", "=Lists!$C$2:$C$3")
-    distance = DataValidation(type="decimal", operator="greaterThan", formula1="0", allow_blank=True, showErrorMessage=True)
-    stations.add_data_validation(distance)
-    distance.add(f"F2:F{last}")
     for ws in (counts, passengers):
         dropdown(ws, "A", f"=Stations!$A$2:$A${last}")
-    dropdown(counts, "F", "=Lists!$A$2:$A$5")
-    dropdown(counts, "G", "=Lists!$B$2:$B$4")
     for column in ("D", "E"):
         whole_number(counts, column)
     whole_number(passengers, "E")
@@ -251,7 +214,7 @@ def build_dataset(workbook_path):
     problems, exclusions = [], []
 
     stations = {}
-    for row in _rows(wb, "Stations", STATION_COLUMNS, 7):
+    for row in _rows(wb, "Stations", STATION_COLUMNS, 5):
         sid = "" if _blank(row["Station ID"]) else str(row["Station ID"]).strip()
         try:
             if not sid:
@@ -260,15 +223,10 @@ def build_dataset(workbook_path):
                 raise ValueError("duplicate Station ID")
             if row["Transport Mode"] not in MODES:
                 raise ValueError("Transport Mode must be Bus or Train")
-            km = float(row["Route Distance (km)"])
-            if not math.isfinite(km) or km <= 0:
-                raise ValueError("Route Distance (km) must be a positive number")
-            if _blank(row["Route Distance Source"]):
-                raise ValueError("Route Distance Source is required")
         except (TypeError, ValueError) as exc:
             problems.append(f"Stations row {row['Excel Row']}: {exc}")
             continue
-        stations[sid] = {**row, "Route Distance (km)": km}
+        stations[sid] = row
 
     blocks = {}
     for row in _rows(wb, "Counts", COUNT_COLUMNS, 7):
@@ -279,14 +237,11 @@ def build_dataset(workbook_path):
             start = datetime.combine(_date(row["Date"]), _time(row["Block Start"]))
             if start.minute % BLOCK_MINUTES or start.second:
                 raise ValueError("Block Start must be on :00, :15, :30, or :45")
-            if row["Weather Condition"] not in WEATHER or row["Traffic Condition"] not in TRAFFIC:
-                raise ValueError("choose Weather and Traffic from the dropdown lists")
             key = (sid, start)
             if key in blocks:
                 raise ValueError("duplicate count block for this station and time")
             blocks[key] = {"passengers": _count(row["Passenger Arrivals"], "Passenger Arrivals"),
-                           "vehicles": _count(row["Vehicles Serving"], "Vehicles Serving"),
-                           "weather": row["Weather Condition"], "traffic": row["Traffic Condition"]}
+                           "vehicles": _count(row["Vehicles Serving"], "Vehicles Serving")}
         except (TypeError, ValueError) as exc:
             problems.append(f"Counts row {row['Excel Row']}: {exc}")
 
@@ -308,20 +263,18 @@ def build_dataset(workbook_path):
         reason = None
         if boarding <= arrival:
             reason = "Boarding Time is not after Arrival Time (check the times; midnight crossings are not supported)."
-        elif (sid, current) not in blocks:
-            reason = f"No count block at {current:%H:%M} for the weather and traffic at arrival."
         elif any((sid, start) not in blocks for start in window):
             reason = (f"Fewer than four completed 15-minute count blocks before arrival "
                       f"({window[0]:%H:%M}-{current:%H:%M} needed).")
         if reason:
             exclusions.append({"Passengers Excel Row": row["Excel Row"], "Station ID": sid, "Reason": reason})
             continue
-        station, now = stations[sid], blocks[(sid, current)]
+        station = stations[sid]
         vehicles = sum(blocks[(sid, start)]["vehicles"] for start in window)
         records.append({
-            "Traffic Condition": now["traffic"], "Weather Condition": now["weather"],
+            "Station / Stop": sid, "Day of Week": CATEGORY_VALUES["Day of Week"][arrival.weekday()],
+            "Month of Year": CATEGORY_VALUES["Month of Year"][arrival.month - 1],
             "Passenger Volume": sum(blocks[(sid, start)]["passengers"] for start in window),
-            "Route Distance": station["Route Distance (km)"],
             "Vehicle Frequency": 60.0 * vehicles / (BLOCK_MINUTES * WINDOW_BLOCKS),
             "Time of Day": _period(periods, arrival),
             TARGET: round((boarding - arrival).total_seconds() / 60, 2),
@@ -347,9 +300,8 @@ def build_dataset(workbook_path):
                  {"Check": "Stations", "Value": dataset["Station ID"].nunique(), "Target": f">= {MIN_STATIONS}",
                   "Status": "OK" if dataset["Station ID"].nunique() >= MIN_STATIONS else "Add stations"},
                  {"Check": "Transport modes", "Value": ", ".join(sorted(dataset["Transport Mode"].unique())),
-                  "Target": "Bus and Train", "Status": "OK" if dataset["Transport Mode"].nunique() == 2 else "Add the missing mode"}]
-    for column, categories in (("Weather Condition", WEATHER), ("Traffic Condition", TRAFFIC),
-                               ("Time of Day", [p[0] for p in periods])):
+                  "Target": "One mode per file", "Status": "OK" if dataset["Transport Mode"].nunique() == 1 else "Separate Bus and Train"}]
+    for column, categories in CATEGORY_VALUES.items():
         counts = dataset[column].value_counts()
         for category in categories:
             n = int(counts.get(category, 0))
@@ -362,6 +314,8 @@ def build_dataset(workbook_path):
 def write_dataset(workbook_path, output_path):
     """Build and save the upload-ready workbook (first sheet = dataset) and a CSV copy."""
     dataset, exclusions, readiness, methodology = build_dataset(workbook_path)
+    if dataset["Transport Mode"].nunique() != 1:
+        raise ValueError("Use a separate field workbook for Bus and Train; model inputs must contain one transport mode.")
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(output_path, engine="openpyxl") as writer:

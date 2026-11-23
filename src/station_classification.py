@@ -1,17 +1,16 @@
 ﻿"""Seven-factor classification fitted exclusively on reviewed training data."""
-import math
 import numpy as np
 import pandas as pd
 from scipy import stats
 from .config import CATEGORICAL, NUMERICAL, PREDICTORS, TARGET, LABELS
 
-CLASSIFICATION_VERSION = 3
+CLASSIFICATION_VERSION = 5
 INSUFFICIENT = "Insufficient Variation for Classification"
 UNDEFINED = "Requires Researcher Decision"
 NO_EFFECT = "No detectable adjusted effect"
 EFFECT_ALPHA = 0.05
 # Both measured predictors need a documented unit before any station label is issued.
-REQUIRED_UNITS = {"Vehicle Frequency": "vehicle_frequency_unit", "Route Distance": "route_distance_unit"}
+REQUIRED_UNITS = {"Vehicle Frequency": "vehicle_frequency_unit"}
 SEVERITIES = ("Normal", "Minor", "Moderate", "Severe")
 # Numerical-resolution safeguards, not statistical significance tests.
 VARIATION_RTOL = 1e-9
@@ -36,7 +35,7 @@ def station_label(score, thresholds=(.75, 1.5, 2.25)):
     return LABELS[np.searchsorted(thresholds, score, side="right")]
 
 
-def aggregate_station_scores(predictions, thresholds=(.75, 1.5, 2.25), station_column="Station ID"):
+def aggregate_station_scores(predictions, thresholds=(.75, 1.5, 2.25), station_column="Station / Stop"):
     columns = ["Station ID", "Test Records", "Classifiable Records", "Unresolved Records",
                "Mean Multi-Factor Station Score", "Overall Station Classification"]
     station_names = {station_column.lower(), "station"}
@@ -146,13 +145,6 @@ def adjusted_effects(training, config):
     return {"available": True, "reason": None, "factors": factors, "residual_df": df}
 
 
-def scaled_score(effect, low, high):
-    """0 for the most favourable category, 3 for the least, proportional (rounded half up) in between."""
-    if high - low <= 0:
-        return 0
-    return int(min(3, math.floor(3 * (effect - low) / (high - low) + 0.5)))
-
-
 class StationClassifier:
     def __init__(self, config):
         self.config = config
@@ -165,6 +157,7 @@ class StationClassifier:
     def fit(self, training):
         self.config.validate()
         self.method_version = CLASSIFICATION_VERSION
+        self.automatic = getattr(self.config, "category_scoring", "manual") == "automatic"
         self.thresholds = training[list(NUMERICAL)].quantile([.25, .5, .75], interpolation="linear").T
         self.thresholds.columns = ["Q1", "Q2", "Q3"]
         self.thresholds.index.name = "Factor"
@@ -216,8 +209,6 @@ class StationClassifier:
             self.thresholds.loc[col, "Training Pearson Correlation"] = correlation
             self.thresholds.loc[col, "Status"] = status
             self.thresholds.loc[col, "Training Unique Values"] = training[col].nunique()
-        distance_correlation = self.thresholds.loc["Route Distance", "Training Pearson Correlation"]
-        self.distance_correlation = float(distance_correlation) if pd.notna(distance_correlation) else None
         self.category_mappings = {col: {} for col in CATEGORICAL}
         self.evidence = category_evidence(training)
         rows = self.evidence.to_dict(orient="records")
@@ -228,34 +219,38 @@ class StationClassifier:
                 if category not in seen:
                     rows.append({"Factor": col, "Category": category, "Training Count": 0,
                                  "Mean Actual Wait": None, "Median Actual Wait": None})
+        automatic = self.automatic
         for row in rows:
             col, category = row["Factor"], row["Category"]
             override = self.config.category_severity.get(col, {}).get(category)
-            adjusted = adjusted_factors.get(col)
-            effect = p_value = None
-            usable = row["Training Count"] and self.target_status == "Valid" and training[col].nunique() > 1
-            if adjusted is not None and usable and category in adjusted["effects"]:
-                effects = adjusted["effects"]
-                low, high = min(effects.values()), max(effects.values())
-                effect, p_value = effects[category] - low, adjusted["p_value"]
-                no_effect = p_value >= EFFECT_ALPHA
-                derived = 0 if no_effect else scaled_score(effects[category], low, high)
-                derived_source = (f"{NO_EFFECT} (p = {p_value:.3g})" if no_effect
-                                  else "Adjusted MLR effect (other factors held constant)")
+            mean = row.get("Mean Actual Wait")
+            # Automatic: the category's mean training wait placed in the training actual-wait quartiles
+            # (<= Q1 = 0, (Q1, Q2] = 1, (Q2, Q3] = 2, > Q3 = 3). Approved manual mappings take precedence.
+            derived = (int(np.searchsorted(self.target_quartiles, float(mean), side="left"))
+                       if automatic and self.target_status == "Valid" and mean is not None and np.isfinite(mean) else None)
+            if self.config.classification_approved and override is not None:
+                score, source = override, "Approved researcher mapping"
+            elif derived is not None:
+                score, source = derived, "Automatic: mean training wait vs. training wait quartiles"
             else:
-                derived = int(numerical_severity([row["Mean Actual Wait"]], self.target_quartiles)[0]) if usable else None
-                derived_source = "Training category mean"
-            score, status = override if override is not None else derived, "Valid"
-            source = "Researcher configuration" if override is not None else derived_source
-            if score is None: status = INSUFFICIENT
+                score = None
+                source = ("No training observations for this category" if automatic
+                          else "Pending documented classification approval")
+            status = "Valid" if score is not None else UNDEFINED
             if score is not None: self.category_mappings[col][category] = score
             row.update({"Q1": self.target_quartiles[0], "Q2": self.target_quartiles[1], "Q3": self.target_quartiles[2],
                         "Threshold Variable": TARGET, "Direction": "higher", "Mapping Source": source,
-                        "Adjusted Effect vs Most Favourable (min)": effect, "Adjusted Effect p-value": p_value,
                         "Status": status, "Severity Score": score, "Derived Severity Score": derived,
                         "Severity": SEVERITIES[score] if score is not None else status})
         self.evidence = pd.DataFrame(rows)
         self.rule_metadata = {
+            "classification_approved": self.config.classification_approved,
+            "category_scoring": self.config.category_scoring,
+            "category_method": ("Automatic: each station/calendar category scores 0-3 by placing its mean reviewed-training "
+                                "actual wait in the training actual-wait quartiles; approved manual mappings take precedence."
+                                if self.automatic else
+                                "Explicit documented mappings only; no calendar or station severity is inferred."),
+            "approval_rationale": self.config.research_notes.get("classification_rationale", ""),
             "classification_version": self.method_version, "training_rows": len(training),
             "quartile_source": "reviewed training data only", "quantile_interpolation": "linear",
             "actual_wait_quartiles": dict(zip(("Q1", "Q2", "Q3"), self.target_quartiles.tolist())),
@@ -265,8 +260,7 @@ class StationClassifier:
             "adjusted_model": {"available": self.adjusted["available"], "reason": self.adjusted["reason"],
                                "effect_alpha": EFFECT_ALPHA,
                                "factor_p_values": {c: f["p_value"] for c, f in adjusted_factors.items()},
-                               "no_detectable_effect": sorted(self.no_effect | {
-                                   c for c, f in adjusted_factors.items() if c in CATEGORICAL and f["p_value"] >= EFFECT_ALPHA})},
+                               "no_detectable_effect": sorted(self.no_effect)},
             "direction_method": ("Configured direction takes precedence; otherwise the sign of the additive OLS coefficient "
                                  "(other factors held constant). A factor whose partial F-test p-value is at least "
                                  f"{EFFECT_ALPHA} has no detectable effect and scores 0. Falls back to the training Pearson "
@@ -303,6 +297,8 @@ class StationClassifier:
         output["Predicted Waiting Time Classification Status"] = "Valid"
         severity_columns = [f"{c} Severity" for c in PREDICTORS] + ["Predicted Waiting Time Severity"]
         complete = output[severity_columns].notna().all(axis=1)
+        active = self.config.classification_approved or getattr(self, "automatic", False)
+        if not active: complete[:] = False
         undeclared = self.undeclared_units()
         if undeclared: complete[:] = False
         output["Multi-Factor Station Score"] = output[severity_columns].sum(axis=1, min_count=7).div(7).where(complete)
@@ -313,6 +309,8 @@ class StationClassifier:
             missing = [f"{col}: {output.at[rid, col + ' Classification Status']}" for col in PREDICTORS
                        if pd.isna(output.at[rid, col + " Severity"])]
             missing.extend(f"{factor} unit: {UNDEFINED}" for factor in undeclared)
+            if not active:
+                missing.append("Revised seven-factor classification requires documented research approval")
             reasons.append("; ".join(missing))
         output["Missing Classification Definitions"] = reasons
         return output

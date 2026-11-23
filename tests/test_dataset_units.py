@@ -1,5 +1,6 @@
 from io import BytesIO
 import pandas as pd
+import pytest
 from fastapi.testclient import TestClient
 from backend.app.main import create_app
 from src.dataset_units import documented_units
@@ -15,9 +16,10 @@ def workbook(path, data, declarations):
 def test_exact_documented_units_and_conflicts(tmp_path, fixture_data):
     path = tmp_path / 'units.xlsx'
     workbook(path, fixture_data, [['Vehicle Frequency', 'Service frequency', 'vehicles/hour'], ['Route Distance', 'Trip length', 'km']])
-    assert documented_units(path) == {'vehicle_frequency_unit': 'vehicles/hour', 'route_distance_unit': 'km'}
+    assert documented_units(path) == {'vehicle_frequency_unit': 'vehicles/hour'}
     workbook(path, fixture_data, [['Vehicle Frequency', '', 'vehicles/hour'], ['Vehicle Frequency', '', 'minutes'], ['Route Distance', '', '']])
-    assert documented_units(path) == {}
+    with pytest.raises(ValueError, match='incompatible unit'):
+        documented_units(path)
     assert documented_units(tmp_path / 'unknown.csv') == {}
     workbook(path, fixture_data, [['Vehicle Frequency', 'vehicles/hour mentioned in prose only', '']])
     assert documented_units(path) == {}
@@ -32,12 +34,12 @@ def test_import_defaults_are_saved_and_editable(tmp_path, fixture_data):
         assert response.status_code == 201, response.text
         s = response.json()
         assert s['config']['vehicle_frequency_unit'] == 'vehicles/hour'
-        assert s['config']['route_distance_unit'] == 'km'
+        assert 'route_distance_unit' not in s['config']
         assert not s['approved'] and not s['metrics']
         config = s['config']
         config['vehicle_frequency_unit'] = 'researcher documented count'
         response = client.put('/api/experiments/' + s['id'] + '/config', json={'revision': s['revision'], 'config': config})
-        assert response.status_code == 200
+        assert response.status_code == 400
     with TestClient(create_app(storage)) as client:
         restored = client.get('/api/experiments/' + s['id']).json()
-        assert restored['config']['vehicle_frequency_unit'] == 'researcher documented count'
+        assert restored['config']['vehicle_frequency_unit'] == 'vehicles/hour'

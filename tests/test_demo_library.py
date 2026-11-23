@@ -8,72 +8,19 @@ from fastapi.testclient import TestClient
 from backend.app.main import create_app
 
 
-@pytest.mark.parametrize('mode', ['bus', 'train'])
-def test_library_demo_uses_normal_validation_and_classification(tmp_path, mode):
-    path = Path(__file__).resolve().parents[1] / f'frontend/public/assets/datasets/transit_{mode}_SYNTHETIC_DEMO.xlsx'
-    with TestClient(create_app(tmp_path)) as client:
-        response = client.post('/api/experiments', files={'file': (path.name, path.read_bytes())})
-        assert response.status_code == 201, response.text
-        state = response.json()
-        assert state['records'] == 180
-        assert state['provenance']['status'] == 'prototype'
-        assert state['config']['vehicle_frequency_unit'] == 'vehicles/hour'
-        assert state['config']['route_distance_unit'] == 'km'
-        assert state['transport']['dataset_counts'][mode] == 180
-        assert state['approved'] is False and state['trained'] == []
-        endpoint = f"/api/experiments/{state['id']}"
-        response = client.post(endpoint + '/analyze', json={
-            'revision': state['revision'], 'approve_interactions': True,
-            'retain_remaining': True, 'retain_reason': 'Synthetic software demo validation only'})
-        assert response.status_code == 202, response.text
-        for _ in range(300):
-            state = client.get(endpoint).json()
-            if state['status'] != 'running':
-                break
-            time.sleep(.05)
-        assert state['status'] == 'complete', state.get('error')
-        assert state['export_ready']
-        assert sum(state['distribution'].values()) == 36
-        assert 'Requires Researcher Decision' not in state['distribution']
-        assert state['provenance']['status'] == 'prototype'
-
-
-
-@pytest.mark.parametrize('name,rows', [
-    ('transportation_dataset_200_demo_fixed.xlsx', 200),
-    ('transportation_dataset_40_ph_internet_rows.xlsx', 40),
+@pytest.mark.parametrize('name', [
+    'transit_bus_SYNTHETIC_DEMO.xlsx', 'transit_train_SYNTHETIC_DEMO.xlsx',
+    'transportation_dataset_200_demo_fixed.xlsx', 'transportation_dataset_40_ph_internet_rows.xlsx',
+    'transportation_dataset_500_bus_train.xlsx',
 ])
-def test_earlier_library_workbooks_preserve_declarations(tmp_path, name, rows):
-    folder = Path(__file__).resolve().parents[1] / 'frontend/public/assets/datasets'
-    content = (folder / name).read_bytes()
-    manifest = json.loads((folder / 'source-manifest.json').read_text())
-    assert hashlib.sha256(content).hexdigest() == manifest[name]['sha256']
+def test_superseded_workbooks_rejected_without_mutation(tmp_path, name):
+    path = Path(__file__).resolve().parents[1] / 'frontend/public/assets/datasets' / name
+    before = path.read_bytes()
     with TestClient(create_app(tmp_path)) as client:
-        response = client.post('/api/experiments', files={'file': (name, content)})
-        assert response.status_code == 201, response.text
-        state = response.json()
-        assert state['records'] == rows
-        assert state['provenance']['status'] == 'prototype'
-        assert state['transport']['dataset_counts']['unspecified'] == rows
-        assert not state['approved'] and state['trained'] == []
-        assert state['config']['vehicle_frequency_unit'] == ('' if rows == 40 else 'vehicles/hour')
-
-
-def test_bus_train_library_workbook_labels_both_modes(tmp_path):
-    name = 'transportation_dataset_500_bus_train.xlsx'
-    folder = Path(__file__).resolve().parents[1] / 'frontend/public/assets/datasets'
-    content = (folder / name).read_bytes()
-    manifest = json.loads((folder / 'source-manifest.json').read_text())
-    assert hashlib.sha256(content).hexdigest() == manifest[name]['sha256']
-    with TestClient(create_app(tmp_path)) as client:
-        response = client.post('/api/experiments', files={'file': (name, content)})
-        assert response.status_code == 201, response.text
-        state = response.json()
-        assert state['records'] == 500
-        assert state['provenance']['status'] == 'prototype'
-        assert state['transport']['dataset_counts']['bus'] == 250
-        assert state['transport']['dataset_counts']['train'] == 250
-        assert not state['approved'] and state['trained'] == []
+        response = client.post('/api/experiments', files={'file': (name, before)})
+        assert response.status_code == 400 and 'Missing required' in response.text
+        assert client.get('/api/experiments').json() == []
+    assert path.read_bytes() == before
 
 
 @pytest.mark.parametrize('name', [

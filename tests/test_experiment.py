@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from src.config import ResearchConfig, TARGET
+from conftest import declared_config as ResearchConfig
 from src.experiment import prepare_experiment, run_experiment
 from src.export import export_experiment, spreadsheet_safe
 from src.evaluation import metrics
@@ -15,7 +16,7 @@ def test_complete_export(tmp_path, fixture_data):
     directory = export_experiment(result, tmp_path)
     assert (directory / "experiment.xlsx").exists()
     assert (directory / "models.joblib").exists()
-    assert len(list((directory / "figures").glob("*.png"))) == 12
+    assert len(list((directory / "figures").glob("*.png"))) == 12  # one chart per selected interaction (pairwise + 3-way)
     loaded = pd.read_csv(directory / "csv" / "predictions.csv")
     assert len(loaded) == len(prepared.test)
     assert loaded["Overall Station Classification"].eq("Pending configuration").all()
@@ -24,7 +25,7 @@ def test_complete_export(tmp_path, fixture_data):
     assert len(manifest["source_sha256"]) == 64
     assert "category_evidence" in pd.ExcelFile(directory / "experiment.xlsx").sheet_names
     rules = json.loads((directory / "classification_rules.json").read_text(encoding="utf-8"))
-    assert rules["classification_version"] == 3
+    assert rules["classification_version"] == 5
     assert rules["category_mappings"] == result.classifier.category_mappings
     evidence = pd.read_excel(directory / "experiment.xlsx", sheet_name="category_evidence")
     assert {"Q1", "Q2", "Q3", "Severity Score", "Mapping Source", "Status"} <= set(evidence.columns)
@@ -45,21 +46,20 @@ def test_complete_export(tmp_path, fixture_data):
     assert selected["Order"].tolist() == ["pairwise", "higher-order"]
     assert selected["Predictors"].tolist() == [" × ".join(t) for t in
         [*prepared.config.pairwise_interactions, *prepared.config.higher_order_interactions]]
-    assert specification.loc[specification["Added for Hierarchy"], "Predictors"].tolist() == [
-        "Passenger Volume × Time of Day", "Vehicle Frequency × Time of Day"]
+    assert specification.loc[specification["Added for Hierarchy"], "Predictors"].tolist() == ["Vehicle Frequency × Day of Week", "Time of Day × Day of Week"]
     assert specification["Main Effects Retained"].all()
 
 
 def test_methodology_report_states_the_applied_methods(tmp_path, fixture_data):
     data = fixture_data.copy()
     data["Station ID"] = [f"ST-{i % 8:02d}" for i in range(len(data))]
-    config = ResearchConfig(split_method="grouped", vehicle_frequency_unit="fixture vehicles/hour",
-                            route_distance_unit="fixture km")
+    config = ResearchConfig(split_method="grouped", vehicle_frequency_unit="vehicles/hour", split_group_column="Station ID",
+                            pairwise_interactions=[("Passenger Volume", "Vehicle Frequency")])
     result = run_experiment(prepare_experiment(data, config))
     report = (export_experiment(result, tmp_path) / "METHODOLOGY.md").read_text(encoding="utf-8")
     assert "grouped holdout" in report and "Station ID" in report
     assert f"test fraction {config.test_size}, seed {config.random_state}" in report
-    assert "fixture vehicles/hour" in report and "fixture km" in report
+    assert "vehicles/hour" in report and "Route Distance" not in report
     assert "Passenger Volume × Vehicle Frequency (pairwise)" in report
     assert "Ordinary Least Squares" in report
     for arm in ("Arm A:", "Arm B:", "Arm C:"):
@@ -76,7 +76,7 @@ def test_test_set_perturbation_cannot_change_training_artifacts(fixture_data):
     first = run_experiment(prepared)
     prepared.test["Passenger Volume"] = 999999
     prepared.test[TARGET] = 999999
-    prepared.test["Traffic Condition"] = "TEST_CATEGORY"
+    prepared.test["Station / Stop"] = "TEST_CATEGORY"
     second = run_experiment(prepared)
     pd.testing.assert_frame_equal(first.models.coefficients(), second.models.coefficients())
     pd.testing.assert_frame_equal(first.classifier.thresholds, second.classifier.thresholds)
@@ -86,19 +86,19 @@ def test_test_set_perturbation_cannot_change_training_artifacts(fixture_data):
 
 def test_mode_metrics_and_station_summary_use_only_test_predictions(fixture_data):
     data = fixture_data.copy()
-    data["Transport Mode"] = ["Bus", "Train"] * (len(data) // 2)
+    data["Transport Mode"] = "Bus"
     data["Station ID"] = ["ST-01", "ST-02"] * (len(data) // 2)
     result = run_experiment(prepare_experiment(data, ResearchConfig()))
-    assert set(result.mode_metrics["Transport Mode"]) == {"Bus", "Train"}
+    assert set(result.mode_metrics["Transport Mode"]) == {"Bus"}
     assert result.mode_metrics.groupby("Transport Mode")["Test Rows"].nunique().eq(1).all()
     assert result.mode_metrics.groupby("Transport Mode").size().eq(2).all()
     assert result.station_aggregation["available"]
-    assert result.station_aggregation["station_count"] == 2
+    assert result.station_aggregation["station_count"] == 3
     assert result.station_summary["Test Records"].sum() == len(result.prepared.test)
     assert result.station_summary["Classifiable Records"].sum() == 0
     assert result.station_summary["Unresolved Records"].sum() == len(result.prepared.test)
     test_modes = result.prepared.test["Transport Mode"].str.lower()
-    for mode in ("Bus", "Train"):
+    for mode in ("Bus",):
         selected = test_modes.eq(mode.lower())
         actual = result.prepared.test.loc[selected, TARGET]
         for prefix, model in (("Baseline", "Baseline MLR"), ("Enhanced", "Enhanced MLR")):

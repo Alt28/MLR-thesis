@@ -21,7 +21,7 @@ export const columnHelp: Record<string, string> = {
   'MAE': 'Mean absolute error: the plain average size of the prediction errors, in minutes. Lower is better.',
   'R2': 'Coefficient of determination on the evaluation observations: the share of variation in actual waiting time explained by the model. Higher is better; it can be negative.',
   'Multi-Factor Station Score': 'Combined operational severity score from the six transportation predictors and the Enhanced MLR predicted waiting time.',
-  'Overall Station Classification': 'Station condition based on Traffic Condition, Weather Condition, Passenger Volume, Route Distance, Vehicle Frequency, Time of Day, and Enhanced MLR Predicted Waiting Time.',
+  'Overall Station Classification': 'Station condition based on Passenger Volume, Vehicle Frequency, Station / Stop, Time of Day, Day of Week, Month of Year, and Enhanced MLR Predicted Waiting Time.',
 }
 
 // Keep the backend's metric comparison and effective-equality rule authoritative.
@@ -49,6 +49,8 @@ export function friendlyError(value: string, context: 'dataset' | 'analysis' = '
   if (/25 MB|too large|size limit/i.test(message)) return 'This file is too large. Upload a CSV or XLSX file smaller than 25 MB.'
   if (/changed in another tab|revision|stale/i.test(message)) return 'The dataset changed in another tab. Refresh this page before trying again.'
   if (/connect to Transit Lab/.test(message)) return message
+  if (/^This file contains recorded Actual Waiting Time/.test(message)) return message
+  if (/unexpected categories|Unseen station|predictor schema|separate Bus|transport mode|Transport Mode|prediction time|future-window|Confirm |recorded passenger|Source_Audit|incompatible unit|must measure actual|classification rationale/i.test(message)) return message
   if (context === 'dataset') return "We couldn't read this file. Check the required columns, save it as CSV or XLSX, and try again."
   return "We couldn't complete the analysis. Check your data and saved settings, then try again."
 }

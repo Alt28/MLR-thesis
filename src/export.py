@@ -119,8 +119,8 @@ def methodology_report(result, manifest):
         "",
         f"- Source: `{prepared.source}` (SHA-256 `{prepared.source_hash[:16]}…`)",
         f"- Observations: {len(prepared.original)}; six predictors plus Actual Waiting Time in minutes.",
-        f"- Declared measurement units: Vehicle Frequency = {rules.get('measurement_units', {}).get('Vehicle Frequency') or 'undeclared'}; "
-        f"Route Distance = {rules.get('measurement_units', {}).get('Route Distance') or 'undeclared'}.",
+        f"- Vehicle Frequency: actual recorded operations in {config.vehicle_frequency_unit}; Passenger Volume: recorded count in the documented completed window.",
+        f"- Predictor schema: {config.schema_version}; numerical: Passenger Volume, Vehicle Frequency; categorical: Station / Stop, Time of Day, Day of Week, Month of Year.",
         f"- Source status: {provenance.get('status', 'undocumented')} — {provenance.get('message', '')}",
     ]
     notes = provenance.get("researcher_notes", {})
@@ -145,7 +145,7 @@ def methodology_report(result, manifest):
         "## 3. IQR-based irregularity detection (training only)",
         "",
         f"- Screened variables: {', '.join(config.iqr_columns)}; multiplier {config.iqr_multiplier}.",
-        "- IQR = Q3 − Q1; Lower Bound = Q1 − 1.5·IQR; Upper Bound = Q3 + 1.5·IQR.",
+        f"- IQR = Q3 − Q1; Lower Bound = Q1 − {config.iqr_multiplier}·IQR; Upper Bound = Q3 + {config.iqr_multiplier}·IQR.",
         f"- Flagged training observations: {prepared.flags[ROW_ID].nunique()}.",
         f"- Recorded decisions: {', '.join(f'{k} = {v}' for k, v in actions.items()) or 'none'}. "
         "`retain_unreviewed` means the observation was kept without an individual decision.",
@@ -199,7 +199,7 @@ def methodology_report(result, manifest):
         "R2 is the held-out coefficient of determination (1 − SSE/SST on the test observations); it can be negative.",
     ]
     if len(result.mode_metrics):
-        text += ["- Bus/train metrics are subsets of the same pooled model's test predictions:",
+        text += ["- Metrics for this single-mode model (Bus and Train are fitted separately):",
                  block(result.mode_metrics)]
     validation = getattr(result, "validation", {}) or {}
     if "heldout_significance" in validation:
@@ -247,14 +247,8 @@ def methodology_report(result, manifest):
             " Direction comes from the configured setting, otherwise from the sign of the training Pearson correlation with "
             "Actual Waiting Time."),
         block(classifier.thresholds.reset_index()),
-        ("- Categorical factors without a researcher mapping are scored from the same additive OLS fit: each category's "
-         "effect in minutes is measured against the most favourable category of that factor, the most favourable scores 0, "
-         "the least favourable scores 3, and the rest are proportional (rounded half up). A factor with no detectable "
-         "effect (partial F-test p ≥ 0.05) scores 0 for every category."
-         if getattr(classifier, "basis", "marginal") == "adjusted" and rules.get("adjusted_model", {}).get("available") else
-         "- Categorical factors compare each training category mean against the reviewed-training waiting-time quartiles "
-         f"(Q1 = {classifier.target_quartiles[0]:.6g}, Q2 = {classifier.target_quartiles[1]:.6g}, Q3 = {classifier.target_quartiles[2]:.6g}); "
-         "a documented researcher mapping overrides the derived score."),
+        f"- Revised classification approved: {config.classification_approved}. Rationale: {config.research_notes.get('classification_rationale', '') or 'not documented'}.",
+        "- Station / Stop, Time of Day, Day of Week, and Month of Year receive no automatic severity scores. Only explicitly approved mappings are applied. Category means are descriptive evidence, not operational severity thresholds.",
         block(classifier.evidence),
         "- Negative predictions keep their raw value in evaluation; only the classification input is floored at zero.",
         f"- Label distribution across the {len(result.predictions)} test observations:",
@@ -340,7 +334,7 @@ def export_experiment(result, output_root="outputs"):
         "python": platform.python_version(), "packages": packages, "source_code_sha256": code_hashes,
         "training_original": len(result.prepared.training), "training_reviewed": len(result.training), "test": len(result.prepared.test),
         "quantile_interpolation": "linear", "metrics_use_raw_predictions": True,
-        "route_distance_training_pearson_correlation": result.classifier.distance_correlation,
+        "schema_version": config["schema_version"],
         "classification_rules": rules, "research_protocol": study.get("metadata", {}), "data_provenance": provenance,
         "mode_metrics": json_safe(result.mode_metrics.to_dict(orient="records")),
         "station_aggregation": result.station_aggregation,
@@ -358,7 +352,7 @@ def export_experiment(result, output_root="outputs"):
     manifest["figures"] = save_figures(result, directory / "figures")
     (directory / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False, allow_nan=False), encoding="utf-8")
     summary = "# MLR experiment\n\n" + result.conclusion + "\n\n" + result.metrics.to_string(index=False)
-    summary += "\n\n## Interpretation\n\nThis conclusion applies only to this held-out split. Classification uses reviewed-training thresholds and category means with recorded configuration overrides; constant factors remain unresolved. These are descriptive decision-support rules, not independently validated station conditions. Both models use identical reviewed training rows.\n"
+    summary += "\n\n## Interpretation\n\nThis conclusion applies only to this held-out split. Classification uses reviewed-training numerical thresholds and explicitly approved category mappings; constant factors remain unresolved. These are descriptive decision-support rules, not independently validated station conditions. Both models use identical reviewed training rows.\n"
     if study:
         summary += "\n\n## Controlled comparisons\n\n" + study["metrics"].to_string(index=False)
         summary += "\n\n" + study["comparisons"].to_string(index=False)

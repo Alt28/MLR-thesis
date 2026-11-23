@@ -1,0 +1,286 @@
+/* Shared dark workspace for the separate training and prediction workflows. */
+:root {color-scheme:dark}
+html {background:var(--bg);scrollbar-color:#455568 var(--bg);scroll-padding-top:24px}
+body {color:var(--text);font-weight:450}
+::selection {background:#306d5c;color:#f0fff8}
+.lab-app {display:block;font-size:14px}
+.lab-app [hidden] {display:none!important}
+.lab-sidebar {position:fixed;inset:0 auto 0 0;z-index:30;width:230px;background:#121c25;color:#e5efea;display:flex;flex-direction:column;padding:32px 20px 22px;overflow-y:auto}
+.lab-brand {display:flex;align-items:center;gap:10px;color:var(--text);font-size:22px;font-weight:750;letter-spacing:-.8px;line-height:1.3;padding:0 5px}
+.lab-brand small {display:block;margin-top:6px;font-size:8px;letter-spacing:1.8px;font-weight:550;color:#a5beb8}
+.lab-brand-icon {display:grid;place-items:center;width:41px;height:43px;border:1px solid #5a8f79;border-radius:12px;background:#28483d;color:#c1e7c8}
+.sidebar-section-label {font-size:12px;letter-spacing:1.7px;font-weight:650;color:#92ada6;margin:48px 12px 14px;display:block}
+.lab-sidebar nav {display:flex;flex-direction:column;gap:6px}
+.lab-sidebar nav a {display:flex;gap:12px;align-items:center;min-height:46px;padding:12px;border-radius:9px;background:transparent;color:#b6ccc7;font-size:13px;font-weight:550;text-decoration:none}
+.lab-sidebar nav a>span {flex:1}
+.lab-sidebar nav a>svg:last-child {opacity:0}
+.lab-sidebar nav a:hover {background:#243f3b;color:var(--text);transform:none}
+.lab-sidebar nav a[aria-current=page] {background:#24473c;color:#b2efd3;font-weight:750}
+.lab-sidebar nav a[aria-current=page]>svg:last-child {opacity:1}
+.sidebar-study {margin:38px 10px 42px;padding-top:25px;border-top:1px solid #ffffff15}
+.sidebar-study .sidebar-section-label {margin:0 0 22px}
+.sidebar-transit-icons {display:flex;align-items:center;gap:12px;color:#b9d6ca;margin-bottom:18px}
+.sidebar-transit-icons>span {width:28px;border-top:1px dashed #719188}
+.sidebar-study>strong {display:block;font-size:17px;font-weight:550;line-height:1.55;letter-spacing:-.2px}
+.sidebar-study p {font-size:12px;line-height:1.9;color:#a5bcb5;margin-top:12px}
+.sidebar-study a {display:inline-flex;align-items:center;gap:10px;margin-top:18px;color:#c4e5cf;font-size:12px;font-weight:650}
+.sidebar-connection {margin-top:auto;display:flex;gap:9px;align-items:flex-start;padding:18px 5px 0;border-top:1px solid #ffffff15;font-size:12px;color:#d4e2dc}
+.connection-dot,.model-ready-dot {width:7px;height:7px;background:#77bd96;border-radius:50%;flex-shrink:0;margin-top:6px;box-shadow:0 0 0 3px #77bd9615}
+.connection-dot.disconnected {background:#d5a96c}
+.sidebar-connection small {display:block;color:#8da9a0;font-size:9px;margin-top:4px;line-height:1.6}
+.lab-workspace {margin-left:230px;min-height:100vh;display:flex;flex-direction:column;min-width:0}
+.lab-topbar {height:72px;display:flex;justify-content:space-between;align-items:center;padding:0 40px;background:#161d26ed;border-bottom:1px solid var(--border);gap:20px}
+.lab-breadcrumb,.lab-scope {display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}
+.lab-breadcrumb strong {font-weight:600;color:var(--text)}
+.lab-breadcrumb svg {color:#a7b5b9}
+.lab-scope {font-size:12px;gap:7px}
+.scope-divider {height:13px;border-left:1px solid var(--border);margin:0 7px}
+.lab-app .research-main {max-width:1480px;padding:34px 40px 44px;width:100%;margin:0 auto;flex:1;min-width:0}
+.lab-app .research-footer {padding:20px 40px;font-size:12px;background:transparent}
+.lab-app .skip-link {z-index:100;left:246px;background:var(--surface)}
+.workflow-heading {margin-bottom:26px}
+.workflow-title-row {display:flex;justify-content:space-between;align-items:center;gap:24px}
+.workflow-heading .eyebrow {font-size:12px;letter-spacing:1.7px;font-weight:750}
+.workflow-heading h1 {font-size:32px;letter-spacing:-1.2px;font-weight:750;margin:6px 0 8px}
+.workflow-heading p {font-size:12px;color:var(--muted);line-height:1.8}
+.page-purpose {display:flex;gap:8px;align-items:center;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;font-size:12px;color:var(--muted);white-space:nowrap}
+.page-purpose svg {color:var(--teal)}
+.workflow-progress {display:flex;align-items:center;gap:20px;list-style:none;padding:0;margin:26px 0 0}
+.workflow-progress li {display:flex;gap:9px;align-items:center;color:var(--muted)}
+.workflow-progress li>span {width:25px;height:25px;display:grid;place-items:center;border:1px solid var(--border);border-radius:50%;background:var(--surface);font-size:12px;font-weight:600}
+.workflow-progress strong {font-size:12px;font-weight:550}
+.workflow-progress li>svg {margin-left:14px;color:#bbc8ca}
+.workflow-progress li.current {color:var(--teal)}
+.workflow-progress li.current>span {color:var(--accent-ink);background:var(--teal);border-color:var(--teal)}
+.workflow-progress li.current strong {font-weight:750}
+.workflow-progress li.done {color:var(--teal)}
+.workflow-progress li.done>span {background:var(--teal-soft);border-color:#385c4a}
+.workflow-grid {display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,340px);gap:22px;align-items:stretch}
+.workflow-data {display:flex;flex-direction:column}
+.workflow-grid>* {min-width:0}
+.lab-app .panel {border:1px solid var(--border);background:var(--surface);border-radius:13px;box-shadow:0 3px 12px #00000015}
+.workflow-data,.workflow-setup,.workflow-results {padding:24px}
+.workflow-card-heading {display:flex;gap:11px;align-items:center;margin-bottom:22px;min-width:0}
+.workflow-card-heading>div {min-width:0;flex:1}
+.workflow-card-heading h2 {font-size:15px;font-weight:750;line-height:1.5}
+.workflow-card-heading p {font-size:12px;color:var(--muted);line-height:1.6;margin-top:3px}
+.heading-icon {width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:var(--surface-raised);color:var(--muted);flex-shrink:0}
+.small-badge {padding:4px 7px;border:1px solid var(--border);border-radius:5px;font-size:12px;color:var(--muted);white-space:nowrap}
+.small-badge.success {background:var(--teal-soft);color:var(--teal);border-color:#385c4a}
+.workflow-data .dataset-drop.import-area {padding:25px 18px 16px;background:#14251f;border:1px dashed #385c4a;border-radius:10px;text-align:center}
+.workflow-data .dataset-drop.import-area.has-dataset {padding:16px;min-height:0}
+.workflow-data .import-intro {padding:0 0 20px;display:flex;flex-direction:column;align-items:center}
+.upload-icon {width:53px;height:53px;border:1px solid #385c4a;border-radius:15px;display:grid;place-items:center;background:var(--teal-soft);color:#a2d7bc;margin-bottom:15px}
+.workflow-data .import-intro h3 {font-size:14px;color:var(--text);margin:0}
+.workflow-data .import-intro p {font-size:12px;max-width:330px;margin:8px 0 0;line-height:1.7}
+.workflow-data .dataset-import-actions {display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.workflow-data .dataset-import-actions .button {width:auto;min-height:39px;font-size:12px;padding:9px 14px;flex:none}
+.workflow-data .local-upload-trigger {background:var(--teal);border-color:var(--teal);color:var(--accent-ink)}
+.workflow-data .local-upload-trigger:hover:not(:disabled) {background:var(--teal-dark);border-color:var(--teal-dark)}
+.workflow-data .cloud-import-trigger {background:var(--surface);color:var(--muted)}
+.workflow-data .import-help {justify-content:center;gap:12px;flex-wrap:wrap;margin:13px 0 0;color:var(--muted);font-size:12px}
+.lab-app .button {font-size:12px;border-radius:8px}
+.lab-app .button.primary {background:var(--teal);color:var(--accent-ink);border-color:var(--teal);box-shadow:none}
+.lab-app .button.primary:hover:not(:disabled) {background:var(--teal-dark);border-color:var(--teal-dark)}
+.lab-app .button:disabled {opacity:1;background:#25313a!important;border-color:#33424c!important;color:#91a69f!important}
+.workflow-setup label {font-size:12px;font-weight:650;line-height:1.7;color:var(--muted)}
+.workflow-setup select {font-size:12px;min-height:42px;padding:9px 30px 9px 11px;overflow:hidden;text-overflow:ellipsis}
+.model-select-label {margin-top:18px}
+.split-summary {display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border);border-radius:9px;margin:18px 0;background:var(--surface-raised)}
+.split-summary>div {padding:13px 14px;display:flex;flex-direction:column;gap:2px}
+.split-summary>div+div {border-left:1px solid var(--border)}
+.split-summary strong {font-size:20px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.split-summary span {font-size:12px;color:var(--muted)}
+.setup-guide {padding-top:22px;font-size:12px;color:var(--muted);line-height:1.8}
+.setup-guide ul {list-style:none;margin:18px 0 0;padding:0;display:flex;flex-direction:column;gap:13px}
+.setup-guide li {display:flex;gap:8px;align-items:flex-start}
+.setup-guide svg {margin-top:3px;color:#a2d7bc}
+.workflow-setup .run-area {margin-top:22px;padding-top:20px}
+.workflow-setup .run-button {min-height:44px;font-size:12px}
+.workflow-setup .run-area>p {font-size:12px;line-height:1.7;margin-top:10px}
+.setup-notice {padding:12px 13px;border:1px solid #584a2e;border-radius:8px;background:#302a1e;color:#e4c78e;font-size:12px;line-height:1.75;margin:18px 0 0}
+.workflow-setup .run-area>p.setup-notice {font-size:12px;color:#e4c78e;text-align:left;margin:0 0 14px}
+.setup-notice a {display:inline-flex;align-items:center;gap:6px;font-weight:650;margin-top:9px}
+.workflow-setup .analysis-settings {margin-top:18px}
+.workflow-setup .analysis-settings .disclosure summary {font-size:12px;padding:14px 0}
+.workflow-setup .analysis-settings .disclosure-body {padding-bottom:0}
+.workflow-setup .analysis-settings .settings-note,.workflow-setup .selected-terms {font-size:12px;line-height:1.8}
+.workflow-setup .analysis-settings h4 {font-size:12px}
+.workflow-setup .settings-actions {gap:6px;display:grid;grid-template-columns:1fr}
+.workflow-setup .settings-actions .button {font-size:12px;min-height:33px;white-space:normal;justify-content:flex-start;padding:8px 11px}
+.workflow-setup .settings-actions .button:hover:not(:disabled) {background:var(--teal-soft);color:#a2d7bc;border-color:#385c4a}
+.workflow-setup .decision-note {font-size:12px!important;line-height:1.8}
+.workflow-setup .decision-note .text-button {font-size:12px}
+.workflow-results {margin-top:24px;scroll-margin-top:22px;min-width:0}
+.workflow-results .workflow-card-heading {padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.result-section-number {font-size:12px;font-weight:650;color:var(--teal);background:var(--teal-soft);border-radius:8px;width:35px;height:35px;display:grid;place-items:center;flex-shrink:0}
+.comparison-empty {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:45px;align-items:center;padding:16px 12px 20px}
+.empty-chart-icon {color:#73a08f;margin-bottom:14px;display:block}
+.comparison-empty h3 {font-size:16px;font-weight:650;margin-bottom:7px}
+.comparison-empty p {font-size:12px;color:var(--muted);line-height:1.8;max-width:365px}
+.model-pair {display:flex;flex-direction:column;gap:0;position:relative}
+.model-pair>div {padding:14px 18px;border:1px solid var(--border);border-radius:9px;background:var(--surface);display:grid;grid-template-columns:9px 1fr;column-gap:10px;row-gap:3px;align-items:center}
+.model-pair strong {font-size:12px;font-weight:650}
+.model-pair small {grid-column:2;color:var(--muted);font-size:12px}
+.model-dot {display:block;width:7px;height:7px;border-radius:50%;background:#7690aa}
+.model-dot.enhanced {background:#58a578}
+.model-pair-vs {position:relative;z-index:1;align-self:center;display:grid;place-items:center;width:24px;height:24px;margin:-3px 0;border:1px solid var(--border);border-radius:50%;background:var(--surface);font-size:9px;color:var(--muted)}
+.prediction-explainer {display:flex;align-items:flex-start;gap:12px;background:var(--teal-soft);border:1px solid var(--border);border-radius:9px;padding:14px 18px;margin-bottom:23px;color:var(--muted)}
+.prediction-explainer svg {color:#a2d7bc;margin-top:2px}
+.prediction-explainer p {font-size:12px;line-height:1.8}
+.prediction-explainer strong {font-weight:700;color:#a2d7bc;margin-right:4px}
+.selected-model-card {display:flex;gap:9px;border:1px solid var(--border);border-radius:8px;background:#14251f;padding:13px;margin-top:16px}
+.selected-model-card strong {font-size:12px}
+.selected-model-card p {font-size:12px;color:var(--muted);margin-top:3px}
+.selected-model-card small {font-size:12px;color:var(--muted);line-height:1.8;display:block;margin-top:9px}
+.prediction-consent {margin-top:22px;font-size:12px!important;align-items:flex-start;gap:10px!important;font-weight:450!important}
+.prediction-consent input {margin-top:4px;flex-shrink:0}
+.prediction-loading {min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;color:var(--muted)}
+.prediction-loading svg {color:var(--teal)}
+.prediction-loading h3 {color:var(--text)}
+.prediction-loading p {font-size:12px}
+.model-source summary {font-size:12px;padding:14px 0}
+.model-source p {font-size:12px;color:var(--muted);line-height:1.8}
+.uploaded-predictions>h3 {font-size:16px}
+.uploaded-predictions .forecast-result-count {margin:16px 0 4px;font-size:13px}
+.uploaded-predictions>p.section-caption {font-size:12px;line-height:1.8;margin-bottom:16px}
+.uploaded-predictions table {white-space:nowrap;font-variant-numeric:tabular-nums}
+.uploaded-predictions th,.uploaded-predictions td {padding:12px;font-size:12px;color:var(--muted)}
+.uploaded-predictions th {background:var(--surface-raised);font-size:11px}
+.uploaded-predictions th small {display:block;font-size:10px;font-weight:450;color:var(--muted);margin-top:2px}
+.uploaded-predictions table[aria-label="Prediction-only results"] th:first-child,.uploaded-predictions table[aria-label="Prediction-only results"] td:first-child {min-width:70px;width:80px}
+.uploaded-predictions table[aria-label="Prediction-only results"] th:nth-child(2),.uploaded-predictions table[aria-label="Prediction-only results"] th:nth-child(3) {white-space:normal;min-width:105px;width:120px}
+.uploaded-predictions table[aria-label="Prediction-only results"] td:nth-child(3) {font-weight:650;color:var(--teal)}
+.uploaded-predictions tbody tr:hover {background:var(--surface-hover)}
+/* Dark surfaces across existing result, audit and modal components. */
+.lab-app .dataset-file-card {background:#14251f;border-color:var(--border);padding:14px;margin-top:20px}
+.lab-app .dataset-file-card .dataset-validation {border-color:var(--border)}
+.lab-app .dataset-file-card .file-summary strong {font-size:12px}
+.lab-app .dataset-file-card .dataset-source-note,.lab-app .dataset-source-note {color:#e4c78e;background:#302a1e;border-color:#6c5832}
+.lab-app .decision-note,.lab-app .summary-reasons,.lab-app .result-note {color:#e4c78e;border-color:#6c5832}
+.lab-app .preview-heading h3 {font-size:12px}
+.lab-app .required-variables summary {font-size:12px;padding:16px 0}
+.lab-app .required-variables p,.lab-app .required-variables li {font-size:12px;line-height:1.85}
+.lab-app .required-variables ul {columns:2;column-gap:30px}
+.lab-app .preview-table th,.lab-app .preview-table td {font-size:12px;padding:10px 12px}
+.lab-app .dataset-input .section-caption,.lab-app .dataset-input .small-text {font-size:12px}
+.lab-app .disclosure-body p {color:var(--muted);line-height:1.8}
+.lab-app .comparison-conclusion,.lab-app .station-summary,.lab-app .classification-details tfoot th,.lab-app .classification-details tfoot td {background:var(--teal-soft);border-color:var(--border)}
+.lab-app .result-overview,.lab-app .output-mode-train .result-overview {background:var(--teal-soft);border-color:var(--border);box-shadow:none}
+.lab-app .output-mode-train .result-overview {background:#252537;border-color:#423c56}
+.lab-app .selected-observation>strong {background:var(--surface-raised)}
+.lab-app .result-actions .predictions-trigger,.lab-app .result-actions .details-trigger {background:var(--surface);color:var(--teal);border-color:#385c4a}
+.lab-app .result-actions .predictions-trigger:hover,.lab-app .result-actions .details-trigger:hover {background:var(--teal-soft)}
+.lab-app .transport-tabs {background:var(--surface-raised)}
+.lab-app .transport-tab {--mode-accent:#a2d7bc;--mode-wash:var(--teal-soft)}
+.lab-app .transport-tab.mode-train {--mode-accent:#c4b3ee;--mode-wash:#302a44}
+.lab-app .transport-tab.mode-unspecified {--mode-accent:#93b7d1;--mode-wash:#263643}
+.lab-app .transport-tab>svg {color:currentColor}
+.lab-app .transport-tab:hover:not(:disabled) {background:var(--surface-hover)}
+.lab-app .transport-tab[aria-pressed=true] {color:var(--mode-accent);background:var(--mode-wash);border-color:var(--border);box-shadow:none}
+.lab-app .transport-icon {background:var(--teal-soft);border-color:#385c4a;color:#a2d7bc}
+.lab-app .transport-context.mode-train .transport-icon {background:#302a44;border-color:#423c56;color:#c4b3ee}
+.lab-app .historical-label {border-color:var(--border);background:var(--surface)}
+.lab-app .output-mode-train .transport-context,.lab-app .output-mode-train .result-overview .accuracy-summary,.lab-app .output-mode-train .result-overview .station-brief {border-color:#423c56}
+.lab-app .output-mode-train .result-label>svg {color:#b5a2dc}
+.lab-app .station-band-0 {--condition-color:#99dfb9}
+.lab-app .station-band-1 {--condition-color:#e9c97b}
+.lab-app .station-band-2 {--condition-color:#f0b790}
+.lab-app .station-band-3 {--condition-color:#f0a8b6}
+.lab-app .station-band--1 {--condition-color:#e4c78e}
+.lab-app .severity-label {background:var(--surface-raised);color:var(--text)}
+.lab-app .severity-0 {background:#203d30;color:#afe0bd}
+.lab-app .severity-1 {background:#3e3320;color:#e9c97b}
+.lab-app .severity-2 {background:#432e23;color:#f0b790}
+.lab-app .severity-3 {background:#412832;color:#f0a8b6}
+.lab-app .severity-pending {color:#e4c78e}
+.lab-app .condition-signals,.lab-app .condition-signals li {border-color:var(--border)}
+.lab-app .condition-signals li {background:var(--surface)}
+.lab-app .signal-icon {background:var(--teal-soft);color:#a2d7bc;animation:none}
+.lab-app .library-search,.lab-app .library-footer {background:var(--surface)}
+.lab-app .library-file {background:var(--surface)}
+.lab-app .library-file:hover:not(:disabled) {background:var(--surface-hover);border-color:#385c4a}
+.lab-app .library-file-icon {background:var(--teal-soft);border-color:#385c4a}
+.lab-app .library-file-icon.train {background:#302a44;border-color:#423c56;color:#b5a2dc}
+.lab-app .library-file-note,.lab-app .dataset-library-modal .library-disclosure {color:#e4c78e}
+.lab-app .sop-solutions {margin-top:34px}
+.lab-app .sop-heading .eyebrow {font-size:12px;letter-spacing:1.6px}
+.lab-app .sop-heading h2 {font-size:21px;margin:5px 0 8px}
+.lab-app .sop-heading p {font-size:12px;max-width:740px}
+.lab-app .sop-card {padding:20px}
+.lab-app .sop-card h3 {font-size:12px}
+.lab-app .sop-card p {font-size:12px;line-height:1.85}
+.lab-app .sop-card .button {font-size:12px}
+.lab-app .sop-status {background:var(--surface-raised);color:var(--muted);border-color:var(--border)}
+.lab-app .methodology {max-width:1000px;margin:0}
+.lab-app .methodology h1 {font-size:30px}
+.lab-app .inline-error {overflow-wrap:anywhere}
+@media(min-width:1650px){.workflow-grid {grid-template-columns:minmax(0,1fr) 380px}}
+@media(max-width:1200px){
+  .lab-sidebar {width:204px;padding-left:14px;padding-right:14px}
+  .lab-workspace {margin-left:204px}
+  .lab-app .research-main {padding:28px 24px 36px}
+  .lab-topbar {padding:0 24px}
+  .workflow-grid {grid-template-columns:minmax(0,1fr) 290px;gap:18px}
+  .workflow-data,.workflow-setup,.workflow-results {padding:20px}
+  .page-purpose {display:none}
+  .workflow-progress {gap:12px}
+  .workflow-progress li>svg {margin-left:2px}
+  .workflow-progress strong {font-size:12px}
+  .comparison-empty {gap:22px;padding:10px 0}
+}
+@media(max-width:1000px){
+  .workflow-grid {grid-template-columns:minmax(0,1fr)}
+  .lab-app .sop-grid {grid-template-columns:minmax(0,1fr)}
+  .workflow-setup .settings-actions {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .workflow-setup .selected-terms {columns:2}
+}
+@media(max-width:760px){
+  .lab-sidebar {position:static;width:auto;padding:17px 20px 12px;overflow:visible}
+  .lab-brand {font-size:20px;width:fit-content}
+  .lab-brand small {font-size:7px;margin-top:3px}
+  .lab-brand-icon {height:37px;width:37px}
+  .lab-sidebar>.sidebar-section-label,.sidebar-study,.sidebar-connection {display:none}
+  .lab-sidebar nav {flex-direction:row;margin-top:18px;gap:6px}
+  .lab-sidebar nav a {flex:1;justify-content:center;min-height:40px;padding:9px 7px;font-size:12px;gap:7px}
+  .lab-sidebar nav a>span {flex:none}
+  .lab-sidebar nav a>svg:last-child {display:none}
+  .lab-sidebar nav a>svg:first-child {width:16px;height:16px}
+  .lab-workspace {margin-left:0}
+  .lab-topbar {height:50px;padding:0 22px}
+  .lab-app .research-main {padding:25px 20px 32px}
+  .lab-app .skip-link {left:12px}
+  .workflow-heading h1 {font-size:28px}
+  .lab-app .research-footer {padding:18px 20px;flex-wrap:wrap;gap:7px;font-size:9px}
+}
+@media(max-width:480px){
+  .lab-sidebar {padding:15px 14px 12px}
+  .lab-app .research-main {padding:23px 14px 28px}
+  .lab-topbar {padding:0 16px}
+  .workflow-heading {margin-bottom:21px}
+  .workflow-heading h1 {font-size:26px}
+  .workflow-heading p {font-size:12px}
+  .workflow-progress {align-items:flex-start;justify-content:space-between;gap:7px;margin-top:22px}
+  .workflow-progress li {flex:1;align-items:flex-start;flex-direction:column;gap:7px}
+  .workflow-progress li>svg {display:none}
+  .workflow-progress strong {font-size:9px;max-width:95px;line-height:1.5}
+  .workflow-data,.workflow-setup,.workflow-results {padding:17px}
+  .workflow-card-heading {gap:8px}
+  .workflow-card-heading h2 {font-size:14px}
+  .workflow-card-heading .small-badge {display:none}
+  .workflow-data .dataset-drop.import-area {padding:22px 12px 16px}
+  .workflow-data .dataset-import-actions {flex-direction:column;align-items:stretch}
+  .workflow-data .dataset-import-actions .button {width:100%;min-height:40px}
+  .comparison-empty {grid-template-columns:minmax(0,1fr);gap:22px}
+  .workflow-results>.workflow-card-heading {flex-wrap:wrap}
+  .workflow-results>.workflow-card-heading>div {flex-basis:75%}
+  .workflow-results>.workflow-card-heading .button {margin-left:43px;font-size:12px}
+  .workflow-setup .settings-actions {grid-template-columns:1fr}
+  .workflow-setup .selected-terms {columns:1}
+  .lab-app .required-variables ul {columns:1}
+  .prediction-explainer {padding:12px;gap:8px}
+  .prediction-explainer p {font-size:12px}
+}
+/* Training preview: compact cells, wrapped headers, single-line values so all columns fit. */
+.workflow-data .preview-table th {white-space:normal;line-height:1.35;vertical-align:bottom;padding:10px 10px}
+.workflow-data .preview-table td {white-space:nowrap;padding:10px 10px;font-variant-numeric:tabular-nums}

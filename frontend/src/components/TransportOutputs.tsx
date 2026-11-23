@@ -13,9 +13,9 @@ export function DatasetTransport({s, w}: {s: Experiment; w: Workspace}) {
     {!s.transport?.column && <button className="text-button" disabled={w.busy || !s.transport} onClick={() => {setChoice(s.config.research_notes?.transport_mode || 'unknown');setOpen(true)}}>Set transport mode</button>}
     {open && <Modal title="Dataset transport mode" canClose={!w.busy} close={() => setOpen(false)}><form onSubmit={e => {e.preventDefault();void w.configure({...s.config, research_notes: {...s.config.research_notes, transport_mode: choice}}).then(() => setOpen(false)).catch(() => {})}}><div className="modal-body">
       <p className="muted">Identify the transport service these observations describe. This labels the output without adding a model predictor.</p>
-      <label>Transport mode<select aria-label="Transport mode" value={choice} disabled={w.busy} onChange={e => setChoice(e.target.value)}><option value="unknown">Not specified</option><option value="bus">Bus only</option><option value="train">Train only</option><option value="mixed">Mixed bus and train</option></select></label>
+      <label>Transport mode<select aria-label="Transport mode" value={choice} disabled={w.busy} onChange={e => setChoice(e.target.value)}><option value="unknown">Not specified</option><option value="bus">Bus only</option><option value="train">Train only</option></select></label>
       {choice === 'mixed' && <p className="decision-note">Mixed datasets need a Transport Mode column containing Bus or Train for each observation. Upload the labeled file to separate their outputs.</p>}
-      <p className="section-caption">Saving creates a new revision and clears current results. Select Analyze Dataset again afterward.</p>
+      <p className="section-caption">Saving creates a new revision and clears current results. Select Train & evaluate again afterward.</p>
       {w.error && <p className="inline-error" role="alert">{w.error}</p>}
     </div><div className="modal-footer"><button className="button" type="button" disabled={w.busy} onClick={() => setOpen(false)}>Cancel</button><button className="button primary" disabled={w.busy}>Save transport mode</button></div></form></Modal>}
   </div>
@@ -39,14 +39,14 @@ export function TransportOutputs({s, mode, select}: {s: Experiment; mode: Transp
   ]
   return <div className="transport-outputs">
     <div className="transport-tabs" role="group" aria-label="Transport output filters">{choices.map(({id, label, icon: Icon, count}) => <button key={id} className={`transport-tab mode-${id}`} aria-label={`${label} outputs`} aria-pressed={mode === id} disabled={!s.transport && id !== 'all'} onClick={() => select(id)}><Icon size={17} aria-hidden="true"/><span>{label}</span><small>{count}</small></button>)}</div>
-    <p className="transport-filter-note">{!s.transport ? 'Restart the local server to enable transport views.' : counts?.unspecified ? 'Some observations have no transport label. Add a Transport Mode column or document a single-mode dataset in Advanced Settings.' : 'Choose a transport mode to explore its test observations.'}</p>
+    <p className="transport-filter-note">{!s.transport ? 'Restart the local server to enable transport views.' : counts?.unspecified ? 'Some observations have no transport label. Add a Transport Mode column or document a single-mode dataset in Model settings.' : 'Choose a transport mode to explore its test observations.'}</p>
   </div>
 }
 
 export function TransportContext({s, row}: {s: Experiment; row: Row}) {
   const mode = observationMode(s, row)
   const Icon = mode === 'train' ? TrainFront : mode === 'bus' ? BusFront : Layers3
-  const location = ['Transit Line', 'Route', 'Station'].filter(key => row[key] != null && String(row[key]).trim()).map(key => String(row[key])).join(' / ')
+  const location = ['Transit Line', 'Route', 'Station / Stop'].filter(key => row[key] != null && String(row[key]).trim()).map(key => String(row[key])).join(' / ')
   return <div className={`transport-context mode-${mode}`}>
     <span className="transport-icon"><Icon size={25} strokeWidth={1.7}/></span>
     <div className="transport-context-copy"><strong>{mode === 'bus' ? 'Bus prediction' : mode === 'train' ? 'Train prediction' : 'Transport prediction'}</strong><span>{location || (mode === 'unspecified' ? 'Transport mode not specified' : 'Selected dataset observation')}</span></div>

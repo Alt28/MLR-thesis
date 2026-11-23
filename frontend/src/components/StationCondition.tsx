@@ -1,4 +1,4 @@
-import { Activity, BusFront, CarFront, Clock3, Cloud, CloudRain, Gauge, Route, UsersRound } from 'lucide-react'
+import { Activity, BusFront, CalendarDays, Clock3, Gauge, MapPin, UsersRound } from 'lucide-react'
 import type { Experiment, Row } from '../types'
 import { CATEGORICAL, LABELS, PREDICTORS } from '../types'
 import { columnHelp } from '../services/presentation'
@@ -19,27 +19,9 @@ function factorRule(s: Experiment, row: Row, factor: string, score: number | nul
     const evidence = s.evidence.find(e => e.Factor === factor && e.Category === category)
     if (!evidence) return {condition: DECISION, source: `“${category}” has no training evidence or configured mapping.`}
     const mean = evidence['Training Count'] ? `Training category mean = ${format(evidence['Mean Actual Wait'], 6)} minutes.` : 'No training observations for this configured category.'
-    const quartiles = `Training Actual Waiting Time Q1 = ${format(evidence.Q1, 6)} · Q2 (median) = ${format(evidence.Q2, 6)} · Q3 = ${format(evidence.Q3, 6)} minutes.`
-    const configured = evidence['Mapping Source'] === 'Researcher configuration'
-    const mappingSource = String(evidence['Mapping Source'] ?? '')
-    const adjusted = mappingSource.startsWith('Adjusted MLR') || mappingSource.startsWith('No detectable adjusted effect')
-    if (adjusted && !configured) {
-      const effect = `${factor} effect for “${category}” = ${format(evidence['Adjusted Effect vs Most Favourable (min)'], 4)} minutes above the most favourable category, with the other factors held constant (factor p = ${format(evidence['Adjusted Effect p-value'], 4)}).`
-      const source = mappingSource.startsWith('No detectable')
-        ? `${effect} No detectable effect on waiting time, so every ${factor} category scores 0.`
-        : `${effect} Most favourable category = 0, least favourable = 3, others proportional. ${mean}`
-      if (score == null) return {condition: String(row[`${factor} Classification Status`] || DECISION), source}
-      return {condition: `“${category}” → ${SEVERITIES[score]} / ${score}`, source}
-    }
-    const source = `${mean} ${quartiles} ${configured ? 'Researcher-approved category mapping; overrides the derived score.' : 'Training category mean compared with training waiting-time quartiles; higher mean → higher severity.'}`
-    if (score == null) return {condition: String(row[`${factor} Classification Status`] || DECISION), source}
-    const ranges = [
-      `Mean ≤ ${format(evidence.Q1, 6)} (Q1)`,
-      `${format(evidence.Q1, 6)} (Q1) < mean ≤ ${format(evidence.Q2, 6)} (Q2)`,
-      `${format(evidence.Q2, 6)} (Q2) < mean ≤ ${format(evidence.Q3, 6)} (Q3)`,
-      `Mean > ${format(evidence.Q3, 6)} (Q3)`,
-    ]
-    return {condition: configured ? `“${category}” → ${SEVERITIES[score]} / ${score}` : ranges[score], source}
+    const quart = typeof evidence.Q1 === 'number' ? ` Training wait quartiles: Q1 = ${format(evidence.Q1, 2)}, Q2 = ${format(evidence.Q2, 2)}, Q3 = ${format(evidence.Q3, 2)} min.` : ''
+    const source = `${mean}${quart} ${evidence['Mapping Source']}.`
+    return {condition: score == null ? DECISION : `${category}: ${SEVERITIES[score]} / ${score}`, source}
   }
   if (factor === 'Predicted Waiting Time') {
     const [a, b, c] = s.config.wait_thresholds
@@ -87,12 +69,10 @@ export function StationCondition({s, row, summaryOnly = false, expanded = false}
       ? [{factor, score: severity, value: row[factor === 'Predicted Waiting Time' ? 'Enhanced Predicted Waiting Time' : factor]}]
       : []
   }).sort((a, b) => b.score - a.score).slice(0, 3)
-  const isRain = /rain|storm|shower|precip/i.test(String(row['Weather Condition'] ?? ''))
   const bounds = [0, ...s.config.station_thresholds, 3]
   const waitBounds = s.config.wait_thresholds
   const waitRanges = [`≤ ${format(waitBounds[0])}`, `> ${format(waitBounds[0])} to ≤ ${format(waitBounds[1])}`, `> ${format(waitBounds[1])} to ≤ ${format(waitBounds[2])}`, `> ${format(waitBounds[2])}`]
   const unit = (factor: string) => factor === 'Predicted Waiting Time' ? 'minutes'
-    : factor === 'Route Distance' ? s.config.route_distance_unit
     : factor === 'Vehicle Frequency' ? s.config.vehicle_frequency_unit
     : factor === 'Passenger Volume' ? 'passengers' : ''
 
@@ -102,16 +82,15 @@ export function StationCondition({s, row, summaryOnly = false, expanded = false}
     {signals.length > 0 && <div className="condition-signals">
       <div className="signals-heading"><strong>Higher-threshold factors</strong><span>Classification inputs, not proven causes</span></div>
       <ul>{signals.map(({factor, score: factorScore, value}) => {
-        const Icon = factor === 'Weather Condition' ? (isRain ? CloudRain : Cloud)
-          : factor === 'Passenger Volume' ? UsersRound
-          : factor === 'Traffic Condition' ? CarFront
-          : factor === 'Route Distance' ? Route
+        const Icon = factor === 'Passenger Volume' ? UsersRound
+          : factor === 'Station / Stop' ? MapPin
+          : ['Day of Week', 'Month of Year'].includes(factor) ? CalendarDays
           : factor === 'Vehicle Frequency' ? BusFront
           : factor === 'Time of Day' ? Clock3
           : factor === 'Predicted Waiting Time' ? Gauge
           : Activity
         return <li key={factor}>
-          <span className={`signal-icon${factor === 'Weather Condition' && isRain ? ' rainy' : ''}`}><Icon size={16} aria-hidden="true"/>{factor === 'Weather Condition' && isRain && <span className="signal-rainfall" aria-hidden="true"><i/><i/></span>}</span>
+          <span className="signal-icon"><Icon size={16} aria-hidden="true"/></span>
           <span className="signal-copy"><strong>{factor === 'Predicted Waiting Time' ? 'Enhanced MLR predicted wait' : factor}</strong><small>{SEVERITIES[factorScore]} · {format(value, factor === 'Passenger Volume' ? 0 : 2)}{unit(factor) ? ` ${unit(factor)}` : ''}</small></span>
         </li>
       })}</ul>
@@ -127,13 +106,13 @@ export function StationCondition({s, row, summaryOnly = false, expanded = false}
     </div>
     <p className="station-context">Based on the Enhanced MLR predicted wait and six transportation factors for this observation.</p>
     <p className="sr-only" role="status">Observation {String(row['Record ID'])}: {label}. Multi-factor score {fixed(score)}.</p>
-    {score == null && <p className="decision-note">View Threshold Details for the unresolved factors. Constant variables require suitable varied observations; changing a direction cannot create variation. Undefined rules or units can be reviewed in Advanced Settings.</p>}
+    {score == null && <p className="decision-note">View Threshold Details for the unresolved factors. Constant variables require suitable varied observations; changing a direction cannot create variation. Undefined rules or units can be reviewed in Model settings.</p>}
     <details className="disclosure classification-details" open={expanded || undefined}>
       <summary>View Threshold Details</summary>
       <div className="disclosure-body">
         <p className="section-caption station-observation">Observation <strong>{String(row['Record ID'])}</strong> · Enhanced prediction + six transportation factors</p>
         {score == null && <p className="decision-note">{DECISION}: {String(row['Missing Classification Definitions'])}.</p>}
-        <p className="threshold-source">All quartiles, category means, and inferred directions use reviewed training data only. Explicit configured mappings take precedence. A correlation direction describes this training sample; it is not a significance or causality claim.</p>
+        <p className="threshold-source">All quartiles, category means, and inferred directions use reviewed training data only. {(s.config.category_scoring ?? 'automatic') === 'automatic' ? 'Station and calendar categories are scored automatically: the category’s mean training wait is placed in the training wait quartiles (≤ Q1 = 0, Q1–Q2 = 1, Q2–Q3 = 2, > Q3 = 3); approved manual mappings take precedence.' : 'Category mappings are applied only after documented approval; category means never generate severity scores.'} A correlation direction describes this training sample; it is not a significance or causality claim.</p>
         <div className="table-scroll threshold-scroll" tabIndex={0} aria-label="Seven-factor threshold breakdown; scroll horizontally for all columns">
           <table aria-label="Classification factors">
             <thead><tr><th>Factor</th><th>Value</th><th>Condition</th><th>Severity Score</th></tr></thead>

@@ -1,66 +1,15 @@
-# Data required for the final thesis experiment
+# Current data preparation and collection guide
 
-Use recorded, traceable observations matched at the same station/route and observation period. A website or GitHub origin does not make data observational: check whether the source describes simulation or generated values. The supplied 40-row workbook explicitly describes simulated waiting times and is for prototype testing.
+Use [the exact six-column schema](SIX_PREDICTOR_MIGRATION.md#input-contract). Prepare separate Bus and Train files. Preserve source observation IDs, exact dates/hours, count windows, transport mode, and source references as metadata or an explicitly keyed Source_Audit sheet.
 
-## Define the observation before collection
+For supervised training, record passenger arrival and boarding timestamps for the same passenger; their difference in minutes is Actual Waiting Time. Vehicle headway, vehicle dwell, platform delay, and a model prediction are different quantities. No estimate should replace a missing passenger wait.
 
-Agree on what one row means: for example, one observed waiting episode or a defined station/time interval. Specify whether actual wait is an individual duration or an interval aggregate, how its start/end are measured, and how all predictors are aligned to it. Do not mix definitions across rows without an approved modeling design.
+Predictor-only files can be uploaded and previewed immediately. They require a compatible saved model to obtain predictions and cannot evaluate accuracy. The current NYC and APC candidate exports do not include measured passenger waits.
 
-| Required column | What must be recorded or defined |
-| --- | --- |
-| Traffic Condition | An independently observed/category-defined condition for that observation, with a consistent coding protocol. Avoid inferring it from the waiting-time target. |
-| Weather Condition | Recorded condition for the same place/time; document its source and categories. |
-| Passenger Volume | Count relevant to the same station/interval or event, with a documented counting window. A network daily total repeated in every row is not an observation-level count. |
-| Route Distance | Consistent definition and unit: route length, remaining distance, or other explicitly justified measure. One fixed route may legitimately be constant; do not change it to create variation. The present quartile classifier cannot score a constant factor. |
-| Vehicle Frequency | Revised protocol: observed service frequency in vehicles/hour for the same stop/route/direction during the preceding 60 minutes. Count serving events, not available fleet size. Preserve the count and window; scheduled rates belong to a separately declared experiment. See MEASUREMENT_AMENDMENT.md. |
-| Time of Day | Recorded time mapped using a documented, fixed period definition. |
-| Actual Waiting Time | Recorded minutes measured using the study's waiting-time definition. Synthetic target values cannot establish real-world error rates. |
+Passenger Volume and Vehicle Frequency must be available at the intended prediction time. Use completed past windows, not the rest of the current hour. Source definitions must distinguish entries/boardings/arrivals and platform/complex/route coverage. Do not combine unrelated places or dates merely to fill columns.
 
-Useful identifying metadata: Record ID, Station ID (or `Station`), Route, Transport Mode, Observation Timestamp, Observation Period, and Source Record Reference. Extra columns are retained as metadata; they do not automatically enter the regression. Add a consistent station identifier to obtain station summaries. Avoid unnecessary passenger-identifying information.
+The field-collection helper creates an empty workbook with Stations, Counts, Passengers, Lists, and Sources_Methodology. Record serving vehicles and passengers in 15-minute blocks; each sampled passenger uses the four completed blocks before arrival. Actual wait comes from observed passenger timestamps. Station and calendar features are derived without numeric severity assignments. Time-of-day boundaries are explicit in Lists and require a consistent collection convention. Separate Bus and Train workbooks are required for model-ready export.
 
-## Field-collection workbook (recommended way to collect)
+No automatic deletion of duplicate-looking observations is allowed. Source records must remain traceable; the same six predictor values can describe distinct dates/hours or passengers. Review genuine data issues with source evidence through the existing IQR workflow.
 
-No public dataset was found that contains measured passenger waiting times together with these six predictors for Metro Manila (searched November 2026; candidates were simulated, perception surveys, schedules, or daily ridership totals). Collect the data on site with the provided workbook:
-
-1. `.\.venv\Scripts\python.exe scripts\field_data.py new` creates `data\field_collection_workbook.xlsx` (it refuses to overwrite an existing workbook, so collected data cannot be lost).
-2. On site, two roles:
-   - **Counter** fills the **Counts** sheet every 15 minutes: passengers arriving for the observed service and direction, vehicles that stopped and served it, and the weather and traffic in that block (dropdowns).
-   - **Timer** fills the **Passengers** sheet: arrival time at the waiting area and boarding time of the next passenger to join the queue, plus any full vehicles that passed them.
-   - Start counting at least 60 minutes before timing the first passenger.
-3. `.\.venv\Scripts\python.exe scripts\field_data.py build data\field_collection_workbook.xlsx` writes `data\recorded_dataset.xlsx` and `.csv`. Upload that file to the system.
-
-The builder computes every model column from the raw entries, using the Table 3.1 definitions:
-- **Passenger Volume** is the sum of arrivals in the four completed 15-minute blocks before the passenger's arrival block.
-- **Vehicle Frequency** is 60 × N / 60, with N the vehicles counted in those same blocks.
-- **Weather and Traffic** come from the arrival's own block.
-- **Time of Day** uses the fixed boundaries in the Lists sheet.
-- **Actual Waiting Time** is boarding minus arrival, in minutes.
-
-Passengers without four complete preceding blocks, or with boarding not after arrival, are excluded and listed with the reason. The output also contains a Readiness sheet that checks the targets: at least 400 rows, at least 20 rows per weather, traffic, and time-of-day category, at least 4 stations, and both modes. The units are declared automatically (vehicles/hour, km).
-
-## Dataset checks before final evaluation
-
-- Verify source authenticity, definitions, units, and the link between each row's predictors and target.
-- Check duplicates, repeated trips/stations, and chronological dependence before choosing the split. The implementation offers a random holdout (default) and a grouped holdout by station identifier; a time-based split still needs a separately agreed implementation if chronological dependence matters.
-- Ensure actual coverage supports the claims: bus-only observations do not demonstrate train performance. Do not simply add a Transport Mode metadata column and assume mode is modeled.
-- Examine category counts, numerical variation, feature count, rank, and conditioning. No universal row count is guaranteed sufficient by this software; justify sample size against the design and number of estimable terms with the adviser.
-- Decide interactions, classification rules, and evaluation protocol before examining the final test results. Do not keep changing seeds to report the best run.
-- Preserve unusual valid transportation events. Correct/exclude only with independent source evidence and record the reason.
-- If all routes have the same length or passenger volumes are constant, discuss the classification design. Do not fabricate variation or silently omit factors to obtain a final label.
-- Independently justify operational station labels. Successful seven-score calculation alone does not validate the severity interpretation.
-
-## Current prototype specifics
-
-The workbook's own source notes say Passenger Volume 182,655 is a system-wide daily average, Route Distance 28 is corridor length in km, Traffic Condition is a time-of-day proxy, Actual Waiting Time is simulated, and Vehicle Frequency is 60 divided by scheduled interval (vehicles/hour equivalent). These disclosures explain why the file is useful for demonstrations but does not meet the final recorded-data requirement. Setting frequency units resolves only that unit field; it does not resolve constant factors or simulated outcomes.
-
-
-The newer 200-row and 500-row demo workbooks saved in the local application also explicitly label their data prototype/synthetic in Sources_Methodology. Their extra variation is useful for testing thresholds, but increasing the number of generated rows does not turn them into independent measured observations. The application reads first-row provenance banners as well as tabular source notes.
-
-
-## Labeling bus and train outputs
-
-Include **Transport Mode** with **Bus** or **Train** for each row. For a single-mode file without a mode column, use **Set transport mode** beside the dataset, save, and analyze again. Do not label a mixed file as a single mode. Recorded row labels take precedence; missing or unrecognized labels remain Unspecified. Route, Transit Line, and Station metadata provide output context.
-
-The regression remains one pooled model. In addition to pooled MSE/RMSE, the system reports bus and train metrics on the corresponding labeled subsets of the same held-out predictions. A single-mode researcher declaration can label a dataset without a row-level mode column; missing/unrecognized labels in a mixed dataset remain unspecified. These are subgroup metrics, not separately trained models.
-
-When `Station ID` or `Station` is present, the held-out results also include one summary per station: the mean multi-factor score among classifiable records, classifiable/unresolved record counts, and the corresponding band label. This is a descriptive average across the station's test observations, not a time-specific station condition or an independently validated classification.
+See [classification proposal](CLASSIFICATION_RULES.md) before assigning severity to station or calendar categories. Their names have no inherent order.

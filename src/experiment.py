@@ -5,7 +5,7 @@ from hashlib import sha256
 from pathlib import Path
 import pandas as pd
 from .config import TARGET, ROW_ID
-from .data_loader import load_dataset, validate_data, split_dataset, resolve_group_column
+from .data_loader import load_dataset, validate_data, split_dataset, resolve_group_column, dataset_mode, SOURCE_WARNINGS
 from .irregularity_detection import fit_iqr, flag_irregularities, apply_reviews
 from .mlr_model import MLRModels
 from .evaluation import compare_models, metrics
@@ -58,12 +58,28 @@ def prepare_experiment(source, config):
         data = load_dataset(source)
         source_name = str(source.resolve())
         source_hash = sha256(source.read_bytes()).hexdigest()
+    mode = dataset_mode(data)
+    declared = config.research_notes.get("transport_mode", "unknown")
+    if declared == "mixed" or (mode != "unknown" and declared not in ("unknown", mode)):
+        raise ValueError("Bus and Train require separate models. The declared mode must match the dataset.")
     train, test = split_dataset(data, config)
     bounds = fit_iqr(train, config.iqr_columns, config.iqr_multiplier)
     return PreparedExperiment(config, data, train, test, bounds, flag_irregularities(train, bounds), source_name, source_hash, source_declarations(source, config.research_notes))
 
 
+def require_training_declarations(prepared):
+    config = prepared.config
+    labels, _ = transport_labels(prepared.original, config)
+    if len(set(labels)) != 1 or not set(labels) <= {"bus", "train"}:
+        raise ValueError("Set the dataset transport mode to Bus or Train before training. Keep separate models for each mode.")
+    if not config.observed_targets_confirmed:
+        raise ValueError("Confirm that Actual Waiting Time contains recorded passenger waits in Research documentation; inferred or simulated waits are not research outcomes.")
+    if not config.prediction_inputs_available:
+        raise ValueError("Confirm in Research documentation that passenger and vehicle counts were available at the prediction time, from completed observation windows.")
+
+
 def run_experiment(prepared, decisions=None, fitted_models=None):
+    require_training_declarations(prepared)
     config = prepared.config
     train, audit = apply_reviews(prepared.training, prepared.flags, decisions)
     models = fitted_models if fitted_models is not None else MLRModels(config).fit(train)
@@ -89,7 +105,7 @@ def run_experiment(prepared, decisions=None, fitted_models=None):
             })
     mode_metrics = pd.DataFrame(mode_rows, columns=["Transport Mode", "Model", "Test Rows", "MSE", "RMSE", "MAE", "R2"])
     station_summary, station_aggregation = aggregate_station_scores(output, config.station_thresholds)
-    warnings = list(models.warnings)
+    warnings = list(models.warnings) + list(SOURCE_WARNINGS)
     unreviewed = int(audit.Action.eq("retain_unreviewed").sum())
     if unreviewed:
         warnings.append(f"{unreviewed} flagged training observations retained without completed review.")

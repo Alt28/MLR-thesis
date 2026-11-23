@@ -23,14 +23,15 @@ def test_dataset_declaration_and_missing_mode(fixture_data):
 
 
 def test_transport_metadata_does_not_change_predictions_or_metrics(fixture_data):
-    original = run_experiment(prepare_experiment(fixture_data, ResearchConfig()))
+    from conftest import declared_config
+    original = run_experiment(prepare_experiment(fixture_data, declared_config()))
     data = fixture_data.copy()
-    data['Transport Mode'] = ['Bus', 'Train'] * (len(data) // 2)
-    prepared = prepare_experiment(data, ResearchConfig())
+    data['Transport Mode'] = 'Bus'
+    prepared = prepare_experiment(data, declared_config())
     labeled = run_experiment(prepared)
     pd.testing.assert_frame_equal(original.metrics, labeled.metrics)
     pd.testing.assert_frame_equal(original.models.coefficients(), labeled.models.coefficients())
     np.testing.assert_array_equal(original.predictions['Enhanced Predicted Waiting Time'], labeled.predictions['Enhanced Predicted Waiting Time'])
     counts = transport_summary(prepared)
-    assert counts['dataset_counts'] == {'bus': 40, 'train': 40, 'unspecified': 0}
+    assert counts['dataset_counts'] == {'bus': 80, 'train': 0, 'unspecified': 0}
     assert sum(counts['test_counts'].values()) == len(prepared.test)

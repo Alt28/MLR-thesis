@@ -53,8 +53,8 @@ export function SOPSolutions({s, busy, onReview}: {s: Experiment | null; busy: b
       <article className="panel sop-card">
         <h3>{titles[2]}</h3>
         <p><strong>Problem:</strong> a waiting-time estimate alone does not explain the station condition.</p>
-        <p><strong>Solution:</strong> score each of the six predictors and the Enhanced MLR predicted wait from 0 to 3. Average all seven scores and apply the configured condition thresholds.</p>
-        <p className="sop-status">{complete && s ? `${s.test} test observations scored · ${s.test - LABELS.reduce((total, label) => total + (s.distribution[label] || 0), 0)} need a decision` : 'Train the models to see observation scores and station summaries.'}</p>
+        <p><strong>Solution:</strong> {(s?.config.category_scoring ?? 'automatic') === 'automatic' ? 'Station and calendar categories are scored automatically from their mean training wait against the training wait quartiles (approved manual mappings take precedence). Average the seven scores and apply the configured condition thresholds.' : s?.config.classification_approved ? 'Use the documented, approved category mappings and numerical rules. Average seven complete scores and apply the configured condition thresholds.' : 'The seven-factor framework is retained, pending documented approval of station and calendar mappings. No category scores are inferred.'}</p>
+        <p className="sop-status">{complete && s ? `${s.test} test observations checked · ${s.test - LABELS.reduce((total, label) => total + (s.distribution[label] || 0), 0)} need a decision` : 'Train the models to see observation scores and station summaries.'}</p>
         <p className="small-text">Unresolved factors remain unresolved. These rules do not independently prove a station's real-world condition.</p>
         <button className="button small" disabled={!s || busy} onClick={() => show(2)}>View SOP 3 evidence</button>
       </article>

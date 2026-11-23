@@ -15,6 +15,7 @@ __pycache__/
 outputs/*
 !outputs/.gitkeep
 models/*
+data/collected/
 !models/.gitkeep
 docs/thesis-extracted.txt
 data/*.xlsx

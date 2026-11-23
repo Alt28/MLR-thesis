@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from src.config import ResearchConfig, ROW_ID
+from conftest import declared_config as ResearchConfig
 from src.data_loader import validate_data, split_dataset, load_dataset, write_templates
 from src.irregularity_detection import fit_iqr, flag_irregularities, apply_reviews
 from src.irregularity_detection import review_bundle, read_review_bundle
@@ -9,22 +10,22 @@ from src.experiment import prepare_experiment
 
 
 def test_iqr_and_detection():
-    frame = pd.DataFrame({"x": [1, 2, 3, 4, 100]}, index=list("abcde"))
-    bounds = fit_iqr(frame, ["x"])
-    assert bounds.loc["x", ["Q1", "Q3", "IQR", "Lower Bound", "Upper Bound"]].tolist() == [2, 4, 2, -1, 7]
+    frame = pd.DataFrame({"Passenger Volume": [1, 2, 3, 4, 100]}, index=list("abcde"))
+    bounds = fit_iqr(frame, ["Passenger Volume"])
+    assert bounds.loc["Passenger Volume", ["Q1", "Q3", "IQR", "Lower Bound", "Upper Bound"]].tolist() == [2, 4, 2, -1, 7]
     assert flag_irregularities(frame, bounds)[ROW_ID].tolist() == ["e"]
 
 
 def test_zero_iqr_and_boundary():
-    frame = pd.DataFrame({"x": [5, 5, 5, 5, 6]})
-    assert len(flag_irregularities(frame, fit_iqr(frame, ["x"]))) == 1
+    frame = pd.DataFrame({"Passenger Volume": [5, 5, 5, 5, 6]})
+    assert len(flag_irregularities(frame, fit_iqr(frame, ["Passenger Volume"]))) == 1
 
 
 def test_validation_and_split(fixture_data):
     a, b = split_dataset(fixture_data, ResearchConfig())
     c, d = split_dataset(fixture_data, ResearchConfig())
     assert a.equals(c) and b.equals(d) and set(a.index).isdisjoint(b.index)
-    for col, value in [("Passenger Volume", -1), ("Route Distance", np.inf), ("Time of Day", "")]:
+    for col, value in [("Passenger Volume", -1), ("Vehicle Frequency", np.inf), ("Time of Day", "")]:
         bad = fixture_data.copy()
         bad.at[bad.index[0], col] = value
         with pytest.raises(ValueError):
@@ -36,7 +37,7 @@ def test_validation_and_split(fixture_data):
 def test_grouped_split_requires_valid_groups_and_separates_them(fixture_data):
     data = fixture_data.copy()
     data["Station ID"] = [f"ST-{i % 8:02d}" for i in range(len(data))]
-    config = ResearchConfig(split_method="grouped")
+    config = ResearchConfig(split_method="grouped", split_group_column="Station ID")
     train, test = split_dataset(data, config)
     again, again_test = split_dataset(data, config)
     assert train.equals(again) and test.equals(again_test)
@@ -67,7 +68,7 @@ def test_split_warnings_report_observed_group_overlap(fixture_data):
     random_warnings = run_experiment(prepare_experiment(data, ResearchConfig())).warnings
     assert any("both the training and test partitions" in warning for warning in random_warnings)
     assert any("fixed random holdout" in warning for warning in random_warnings)
-    grouped_warnings = run_experiment(prepare_experiment(data, ResearchConfig(split_method="grouped"))).warnings
+    grouped_warnings = run_experiment(prepare_experiment(data, ResearchConfig(split_method="grouped", split_group_column="Station ID"))).warnings
     assert any("Grouped split by Station ID" in warning for warning in grouped_warnings)
     assert any("fixed grouped holdout" in warning for warning in grouped_warnings)
     assert not any("both the training and test partitions" in warning for warning in grouped_warnings)

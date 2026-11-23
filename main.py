@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import sys
 from src.config import ResearchConfig
-from src.data_loader import write_templates
+from src.data_loader import write_templates, inspect_dataset_bytes
 from src.experiment import prepare_experiment, run_experiment
 from src.export import export_experiment, spreadsheet_safe
 from src.station_classification import StationClassifier
@@ -14,24 +14,15 @@ from src.irregularity_detection import review_bundle, read_review_bundle
 def launch_web(host="127.0.0.1", port=8000, open_browser=True):
     import threading
     import time
-    import urllib.request
     import webbrowser
     import uvicorn
+    from backend.app.server_discovery import select_server, server_status
 
     root = Path(__file__).resolve().parent
     if not (root / "frontend" / "dist" / "index.html").is_file():
         raise ValueError("Build the web interface first: run setup.ps1, or npm run build in frontend/.")
-    browser_host = "127.0.0.1" if host == "0.0.0.0" else host
-    url = f"http://{browser_host}:{port}"
-
-    def running():
-        try:
-            with urllib.request.urlopen(url + "/api/health", timeout=1) as response:
-                return json.load(response).get("application") == "transit-lab"
-        except (OSError, ValueError):
-            return False
-
-    if running():
+    port, url, existing = select_server(host, port)
+    if existing:
         print(f"Transit Lab is already running at {url}")
         if open_browser: webbrowser.open(url)
         return
@@ -39,7 +30,7 @@ def launch_web(host="127.0.0.1", port=8000, open_browser=True):
     if open_browser:
         def browser_when_ready():
             for _ in range(60):
-                if running():
+                if server_status(url) == 'compatible':
                     webbrowser.open(url)
                     return
                 time.sleep(.5)
@@ -73,6 +64,13 @@ def main():
             return 0
         config = (ResearchConfig(**json.loads(Path(args.config).read_text(encoding="utf-8")))
                   if args.config else ResearchConfig())
+        if args.command == "inspect":
+            path = Path(args.dataset)
+            inspection = inspect_dataset_bytes(path.name, path.read_bytes())
+            if inspection["purpose"] != "training":
+                print(json.dumps(inspection, indent=2))
+                print("Source preview accepted. No model was trained or evaluated. Complete missing predictors, if listed, before using a compatible saved Bus or Train model.")
+                return 0
         prepared = prepare_experiment(args.dataset, config)
         if args.command == "inspect":
             from datetime import datetime, timezone

@@ -9,6 +9,8 @@ MODE_VALUES = {"bus": "bus", "buses": "bus", "train": "train", "trains": "train"
 def transport_labels(frame, config):
     columns = {str(c).strip().lower(): c for c in frame.columns}
     column = next((columns[key] for key in MODE_COLUMNS if key in columns), None)
+    if column is not None and frame[column].fillna("").astype(str).str.strip().eq("").all():
+        column = None  # An unused optional template column may be declared in the UI.
     if column is not None:
         # Explicit invalid/missing row values stay unspecified, even with a dataset declaration.
         labels = frame[column].fillna("").astype(str).str.strip().str.lower().map(MODE_VALUES).fillna("unspecified")

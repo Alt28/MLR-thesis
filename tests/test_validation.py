@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from src.config import ResearchConfig, TARGET
+from conftest import declared_config as ResearchConfig
 from src.data_loader import split_dataset
 from src.experiment import prepare_experiment, run_experiment
 from src.export import export_experiment
@@ -10,7 +11,7 @@ from src.station_classification import StationClassifier
 from src.validation import (_fold_splits, classification_agreement, corrected_resampled_ttest,
                             paired_error_tests)
 
-UNITS = dict(vehicle_frequency_unit="fixture vehicles/hour", route_distance_unit="fixture km")
+UNITS = dict(vehicle_frequency_unit="vehicles/hour")
 
 
 def test_paired_tests_detect_difference_and_skip_identical_predictions():
@@ -27,7 +28,7 @@ def test_paired_tests_detect_difference_and_skip_identical_predictions():
 def test_grouped_cross_validation_never_splits_a_station(fixture_data):
     data = fixture_data.copy()
     data["Station ID"] = [f"ST-{i % 9}" for i in range(len(data))]
-    config = ResearchConfig(split_method="grouped", cv_folds=4, cv_repeats=2)
+    config = ResearchConfig(split_method="grouped", split_group_column="Station ID", cv_folds=4, cv_repeats=2)
     training, _ = split_dataset(data, config)
     splits = list(_fold_splits(training, config))
     assert len(splits) == 8
@@ -46,7 +47,8 @@ def test_corrected_resampled_ttest_inflates_variance():
 
 
 def test_classification_agreement_is_perfect_when_prediction_equals_actual(fixture_data):
-    config = ResearchConfig(**UNITS)
+    from conftest import classification_config
+    config = classification_config(**UNITS)
     training, test = split_dataset(fixture_data, config)
     classifier = StationClassifier(config).fit(training)
     summary, confusion = classification_agreement(classifier, test, classifier.classify(test, test[TARGET]))

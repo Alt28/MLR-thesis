@@ -43,6 +43,22 @@ async def inspect_dataset(file: UploadFile = File(...)):
     return await run_in_threadpool(inspect_dataset_bytes, file.filename or "dataset.csv", content)
 
 
+@router.get("/datasets/library")
+def dataset_library():
+    from ..services.dataset_library import entries
+    return entries()
+
+
+@router.get("/datasets/library/{dataset_id}")
+def library_file(dataset_id: str):
+    from ..services.dataset_library import dataset_path
+    try:
+        path = dataset_path(dataset_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return FileResponse(path, filename=path.name)
+
+
 @router.post("/experiments", status_code=201)
 async def upload(request: Request, file: UploadFile = File(...)):
     content = await file.read(MAX_UPLOAD_BYTES + 1)
@@ -89,14 +105,15 @@ def analyze(sid: str, payload: AnalysisRequest, request: Request):
 
 
 @router.post("/experiments/{sid}/predict")
-async def predict(sid: str, request: Request, file: UploadFile = File(...), revision: int | None = Form(None, ge=1)):
+async def predict(sid: str, request: Request, file: UploadFile = File(...), revision: int | None = Form(None, ge=1),
+                  transport_mode: Literal["unknown", "bus", "train"] = Form("unknown"), inputs_available: bool = Form(False)):
     content = await file.read(MAX_UPLOAD_BYTES + 1)
     await file.close()
     if len(content) > MAX_UPLOAD_BYTES: raise HTTPException(413, "The prediction dataset exceeds the 25 MB upload limit.")
     if not content: raise ValueError("Choose a nonempty prediction dataset.")
     from starlette.concurrency import run_in_threadpool
     return await run_in_threadpool(
-        request.app.state.store.predict, sid, file.filename or "prediction.csv", content, revision)
+        request.app.state.store.predict, sid, file.filename or "prediction.csv", content, revision, transport_mode, inputs_available)
 
 
 @router.get("/experiments/{sid}/tables/{name}")

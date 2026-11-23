@@ -1,3 +1,5 @@
+> Historical old-schema teaching material. The current six predictors and pending classification methodology are documented in docs/SIX_PREDICTOR_MIGRATION.md. The figures here have not been recomputed or reinterpreted.
+
 # Chapters 3–5, explained simply
 ## An illustrated guide to your MLR thesis
 

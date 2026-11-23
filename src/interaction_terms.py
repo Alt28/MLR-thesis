@@ -69,10 +69,13 @@ class FeatureBuilder:
         return frame
 
     def unknown_categories(self, data):
-        return pd.Series([
-            "; ".join(f"{col}={row[col]}" for col in CATEGORICAL if row[col] not in self.categories[col])
-            for _, row in data.iterrows()
-        ], index=data.index, name="Unseen Categories")
+        output = pd.Series("", index=data.index, name="Unseen Categories")
+        for col in CATEGORICAL:
+            missing = ~data[col].isin(self.categories[col])
+            if missing.any():
+                prefix = output.loc[missing].map(lambda value: value + "; " if value else "")
+                output.loc[missing] = prefix + col + "=" + data.loc[missing, col].astype(str)
+        return output
 
     def centering_table(self):
         centers = getattr(self, "centers", {})

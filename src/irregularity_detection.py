@@ -2,11 +2,13 @@
 import json
 from hashlib import sha256
 import pandas as pd
-from .config import PREDICTORS, TARGET, ROW_ID
+from .config import PREDICTORS, NUMERICAL, TARGET, ROW_ID
 from .data_loader import validate_data
 
 
 def fit_iqr(training, columns, multiplier=1.5):
+    if not columns or not set(columns) <= set((*NUMERICAL, TARGET)):
+        raise ValueError("IQR screens numeric predictors and recorded waiting time only, never categories or dummy columns.")
     quartiles = training[list(columns)].quantile([0.25, 0.75], interpolation="linear")
     result = pd.DataFrame({"Q1": quartiles.loc[0.25], "Q3": quartiles.loc[0.75]})
     result["IQR"] = result.Q3 - result.Q1

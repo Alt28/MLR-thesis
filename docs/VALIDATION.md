@@ -1,3 +1,22 @@
+# Current six-predictor verification - 22 November 2026
+
+## Collected-data integration ? 22 November 2026
+
+179 Python tests, production build, and the isolated browser workflow passed. Every row in all 13 local ETL packages passed import inspection. Full Train CSV parts retain 200,263 unique observations; both Bus formats report source_review with frequency missing. The actual Train and Bus overview files were also opened through Dataset Library in the updated local server at port 8001, without changing saved experiments. See [COLLECTED_DATA_IMPORT.md](COLLECTED_DATA_IMPORT.md) for the source scope and limits.
+
+Schema: station-calendar-v2. The entries below this current record describe historical revisions; their old predictors and counts are not the current methodology.
+
+- Full Python suite: **175 passed**, one dependency deprecation warning from Starlette's httpx test client. No application failures.
+- Frontend TypeScript and production build: passed.
+- Browser workflow: passed with Microsoft Edge through Playwright, isolated temporary storage, and explicitly artificial software fixtures. Checked normal CSV preview, predictor-only preview without training, mode separation, required declarations, four interaction candidates, IQR review, A/B/C evaluation, all three SOP evidence dialogs, pending category mappings, explicit classification approval, blank-target inference, CSV exports with actual blank, unknown-station rejection, persisted model results, and mobile overflow.
+- CSV and Excel schema/alias validation, duplicate preservation, reference encoding, training-only preprocessing and quartiles, source-audit keyed joins, future-window rejection, separate Bus and Train fitting, old-model blocking, missing-target rejection for training, safe exports, and no inference metric mutation are covered by automated Python tests.
+- All 200,263 rows of the user's NYC V2 predictor CSV passed the read-only schema check. The first 10,000 rows of the AC Transit candidate passed the same limited check; its full 881,052,075-byte file was not imported. Neither source supplied Actual Waiting Time, and no real-source model was fitted or evaluated.
+- Desktop training and pending SOP 3 screenshots were visually inspected. Software-test screenshots live in frontend/test-results/schema-v2 and are not research figures.
+
+See [the migration and methodology record](SIX_PREDICTOR_MIGRATION.md) for remaining data, timing, coverage, and classification decisions. Existing source files and prior stored experiments were not rewritten.
+
+---
+
 # Software validation
 
 Verified on 4 November 2026 using Windows, Python 3.13.7, Node.js 22.19.0, Microsoft Edge, and the versions recorded in `requirements-lock.txt` and `frontend/package-lock.json`.
@@ -235,3 +254,16 @@ The loading bus now travels horizontally, with rotating DOM wheel spokes, suspen
 - After training completes, a prediction-only upload accepts predictor columns without Actual Waiting Time, returns both model predictions and the enhanced-factor classification, and does not change model fits or evaluation metrics. Labeled prediction-only uploads are rejected.
 - The downloadable transportation template now includes optional Station ID. The collection/template field does not enter model features.
 - These software additions do not alter the attached thesis PDF or establish that the revised measurement and classification choices are adviser-approved.
+
+
+## Separate Training and Test & Predict pages (23 November 2026)
+
+The web interface now has distinct hash routes for Training and Test & Predict, with the previous analyze route retained as an alias for Training. A dark workspace, navigation sidebar, larger dataset area, visible model controls and full-width results replace the mixed narrow-column workflow. Methodology remains separately accessible.
+
+Training requires recorded targets and the existing source/input declarations, then runs the unchanged review, interaction and held-out evaluation pipeline. Its results retain all three SOP evidence sections. Test & Predict has independent dataset, model-selection, error and result state. Blank or omitted targets are accepted; predictions remain in separate columns, with no invented accuracy metrics. Only completed compatible models for the selected transport mode are offered. Source-review inputs stay blocked with their actual missing-field explanation.
+
+A blank-target upload on Training moves to Test & Predict without replacing its saved training experiment. A labeled upload on Test & Predict displays a specific direction to Training and creates no experiment. Navigation preserves in-memory prediction uploads/results, while reloading requires re-uploading the prediction file. Training model revisions invalidate predictions that used an earlier revision.
+
+Validation: TypeScript/Vite production build and the full isolated browser workflow passed. Browser checks cover library imports, missing models, declarations, interactions, IQR review, three-arm results, SOP 1-3, blank-target inference, wrong-page handling, preserved state across page navigation, unchanged training metrics after prediction, CSV export with blank actuals, wrong transport mode and unseen-station rejection, persisted training selection, and a 390px mobile viewport without page overflow. Artificial test fixtures remain in temporary storage, separate from the user's research datasets. Desktop/mobile screenshots were reviewed; they are software checks, not research findings.
+
+Dark appearance restored at the user's request on 23 November 2026. Both routes, input controls, dataset library, result surfaces and chart previews use the dark palette. Production build and the full browser workflow passed; desktop screenshot inspected and 390 px viewport checked for overflow. Downloaded research figures retain their print-friendly background.

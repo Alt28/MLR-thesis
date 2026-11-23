@@ -1,0 +1,10 @@
+# Optional local collector dependencies; the web application does not need DuckDB.
+duckdb>=1.1,<2
+openpyxl>=3.1,<4
+tzdata>=2024.1
+# Optional published-report extraction for waiting-sources mode.
+pypdf>=6,<8
+
+# Read the official SECTRA Access database and its Deflate64 archive (linked-waits).
+access-parser==0.0.6
+zipfile-deflate64==0.2.0

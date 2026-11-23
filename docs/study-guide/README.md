@@ -1,3 +1,5 @@
+> Historical old-schema teaching material. The current six predictors and pending classification methodology are documented in docs/SIX_PREDICTOR_MIGRATION.md. The figures here have not been recomputed or reinterpreted.
+
 # Illustrated guide to Chapters 3–5
 
 This separate, 35-page study companion explains the highlighted thesis in plain English, with 18 embedded images, worked calculations, figure walkthroughs, a glossary, and defense practice questions.

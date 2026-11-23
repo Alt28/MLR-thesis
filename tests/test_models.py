@@ -8,22 +8,25 @@ from src.mlr_model import MLRModels, ols_inference, variance_inflation
 from src.evaluation import metrics, compare_models
 from src.data_loader import split_dataset
 
+# Artificial fixtures were generated with this interaction; name it explicitly instead of relying on the default.
+PV_VF = [("Passenger Volume", "Vehicle Frequency")]
+
 
 def test_selected_pairwise_higher_order_and_main_effects(fixture_data):
-    builder = FeatureBuilder(ResearchConfig(center_interactions=False, hierarchical_interactions=False)).fit(fixture_data)
+    builder = FeatureBuilder(ResearchConfig(center_interactions=False, higher_order_interactions=[("Passenger Volume", "Vehicle Frequency", "Time of Day")])).fit(fixture_data)
     main = builder.transform(fixture_data)
     full = builder.transform(fixture_data, enhanced=True)
     pd.testing.assert_frame_equal(main, full[main.columns])
     pair = "Passenger Volume × Vehicle Frequency"
-    triple = 'Passenger Volume × Vehicle Frequency × Time of Day["T1"]'
+    triple = 'Passenger Volume × Vehicle Frequency × Time of Day["Night"]'
     np.testing.assert_allclose(full[pair], fixture_data["Passenger Volume"] * fixture_data["Vehicle Frequency"])
-    np.testing.assert_allclose(full[triple], full[pair] * fixture_data["Time of Day"].eq("T1"))
-    assert len(full.columns) == len(main.columns) + 2
+    np.testing.assert_allclose(full[triple], full[pair] * fixture_data["Time of Day"].eq("Night"))
+    assert len(full.columns) == len(main.columns) + 4
     assert set(builder.blocks) == set(PREDICTORS)
 
 
 def test_categorical_interaction_cross_product(fixture_data):
-    config = ResearchConfig(pairwise_interactions=[("Traffic Condition", "Weather Condition")], higher_order_interactions=[])
+    config = ResearchConfig(pairwise_interactions=[("Station / Stop", "Day of Week")], higher_order_interactions=[])
     b = FeatureBuilder(config).fit(fixture_data)
     x = b.transform(fixture_data, True)
     assert len(b.interaction_columns) == 2
@@ -34,22 +37,22 @@ def test_categorical_interaction_cross_product(fixture_data):
 def test_training_only_encoding_and_consistent_features(fixture_data):
     train, test = split_dataset(fixture_data, ResearchConfig())
     b = FeatureBuilder(ResearchConfig()).fit(train)
-    test["Traffic Condition"] = "UNSEEN"
-    assert "UNSEEN" not in b.categories["Traffic Condition"]
+    test["Station / Stop"] = "UNSEEN"
+    assert "UNSEEN" not in b.categories["Station / Stop"]
     assert b.transform(train, True).columns.tolist() == b.transform(test, True).columns.tolist()
     assert b.unknown_categories(test).str.contains("UNSEEN").all()
 
 
 def test_centered_interactions_use_training_means_and_reduce_conditioning(fixture_data):
-    train, test = split_dataset(fixture_data, ResearchConfig())
-    centered = FeatureBuilder(ResearchConfig()).fit(train)
+    train, test = split_dataset(fixture_data, ResearchConfig(pairwise_interactions=PV_VF))
+    centered = FeatureBuilder(ResearchConfig(pairwise_interactions=PV_VF)).fit(train)
     pv, vf = train["Passenger Volume"].mean(), train["Vehicle Frequency"].mean()
     x = centered.transform(test, True)
     np.testing.assert_allclose(x["Passenger Volume × Vehicle Frequency"], (test["Passenger Volume"] - pv) * (test["Vehicle Frequency"] - vf))
     pd.testing.assert_series_equal(x["Passenger Volume"], test["Passenger Volume"].astype(float))
     pairwise_only = dict(higher_order_interactions=[])
-    raw = MLRModels(ResearchConfig(center_interactions=False, **pairwise_only)).fit(train)
-    shifted = MLRModels(ResearchConfig(**pairwise_only)).fit(train)
+    raw = MLRModels(ResearchConfig(pairwise_interactions=PV_VF, center_interactions=False, **pairwise_only)).fit(train)
+    shifted = MLRModels(ResearchConfig(pairwise_interactions=PV_VF, **pairwise_only)).fit(train)
     # With all lower-order terms present, centering only reparametrizes the model.
     np.testing.assert_allclose(raw.predict(test)["Enhanced Predicted Waiting Time"], shifted.predict(test)["Enhanced Predicted Waiting Time"])
     condition = {m.config.center_interactions: m.diagnostics[1]["Condition Number"] for m in (raw, shifted)}
@@ -57,19 +60,19 @@ def test_centered_interactions_use_training_means_and_reduce_conditioning(fixtur
 
 
 def test_hierarchy_adds_lower_order_parts_and_makes_centering_a_reparametrization(fixture_data):
-    train, test = split_dataset(fixture_data, ResearchConfig())
-    builder = FeatureBuilder(ResearchConfig()).fit(train)
+    train, test = split_dataset(fixture_data, ResearchConfig(pairwise_interactions=PV_VF, higher_order_interactions=[("Passenger Volume", "Vehicle Frequency", "Time of Day")]))
+    builder = FeatureBuilder(ResearchConfig(pairwise_interactions=PV_VF, higher_order_interactions=[("Passenger Volume", "Vehicle Frequency", "Time of Day")])).fit(train)
     added = {" × ".join(t["factors"]) for t in builder.terms if t["added_for_hierarchy"]}
     assert added == {"Passenger Volume × Time of Day", "Vehicle Frequency × Time of Day"}
-    assert builder.hierarchy_columns == {'Passenger Volume × Time of Day["T1"]', 'Vehicle Frequency × Time of Day["T1"]'}
-    raw = MLRModels(ResearchConfig(center_interactions=False)).fit(train)
-    centered = MLRModels(ResearchConfig()).fit(train)
+    assert builder.hierarchy_columns == {'Passenger Volume × Time of Day["Night"]', 'Vehicle Frequency × Time of Day["Night"]'}
+    raw = MLRModels(ResearchConfig(pairwise_interactions=PV_VF, center_interactions=False, higher_order_interactions=[("Passenger Volume", "Vehicle Frequency", "Time of Day")])).fit(train)
+    centered = MLRModels(ResearchConfig(pairwise_interactions=PV_VF, higher_order_interactions=[("Passenger Volume", "Vehicle Frequency", "Time of Day")])).fit(train)
     np.testing.assert_allclose(raw.predict(test)["Enhanced Predicted Waiting Time"],
                                centered.predict(test)["Enhanced Predicted Waiting Time"], atol=1e-8)
     coef = centered.coefficients()
     assert coef.loc[coef.Term.isin(builder.hierarchy_columns), "Added for Hierarchy"].all()
     # The highest-order coefficient does not depend on centering once the model is hierarchical.
-    triple = 'Passenger Volume × Vehicle Frequency × Time of Day["T1"]'
+    triple = 'Passenger Volume × Vehicle Frequency × Time of Day["Night"]'
     values = [m.coefficients().set_index(["Model", "Term"]).loc[("Enhanced MLR", triple), "Coefficient"] for m in (raw, centered)]
     assert values[0] == pytest.approx(values[1], abs=1e-9)
 
@@ -111,8 +114,8 @@ def test_metrics_and_no_assumed_improvement():
 
 
 def test_ols_coefficients_and_predictions(fixture_data):
-    train, test = split_dataset(fixture_data, ResearchConfig())
-    fitted = MLRModels(ResearchConfig()).fit(train)
+    train, test = split_dataset(fixture_data, ResearchConfig(pairwise_interactions=PV_VF))
+    fitted = MLRModels(ResearchConfig(pairwise_interactions=PV_VF)).fit(train)
     predicted = fitted.predict(test)
     np.testing.assert_allclose(predicted["Enhanced Predicted Waiting Time"], test[TARGET], atol=1e-8)
     coef = fitted.coefficients()

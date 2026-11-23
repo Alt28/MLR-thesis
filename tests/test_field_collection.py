@@ -19,10 +19,10 @@ def put(ws, rows):
 def filled_workbook(path):
     create_workbook(path)
     wb = load_workbook(path)
-    put(wb["Stations"], [["S1", "Fixture stop", "Bus", "Fixture route", "Northbound", 12.5, "Fixture map"],
-                         ["S2", "Fixture station", "Train", "Fixture line", "Southbound", 16.9, "Fixture map"]])
+    put(wb["Stations"], [["S1", "Fixture stop", "Bus", "Fixture route", "Northbound"],
+                         ["S2", "Fixture station", "Bus", "Fixture line", "Southbound"]])
     put(wb["Counts"], [[sid, date(2026, 12, 1), time((6 * 60 + 15 * k) // 60, (6 * 60 + 15 * k) % 60), 10 + k, 2 + k % 2,
-                        "Rain" if k == 4 else "Clear", "Heavy", "obs", ""]
+                        "obs", ""]
                        for sid in ("S1", "S2") for k in range(9)])  # 06:00 ... 08:00
     put(wb["Passengers"], [["S1", date(2026, 12, 1), time(7, 5, 30), time(7, 17, 0), 1],
                            ["S1", date(2026, 12, 1), time(6, 20, 0), time(6, 30, 0), 0],
@@ -39,9 +39,9 @@ def test_workbook_build_computes_table_3_1_definitions(tmp_path):
     # Arrival 07:05:30 sits in the 07:00 block; the window is the four completed blocks 06:00-06:45.
     assert first["Passenger Volume"] == 10 + 11 + 12 + 13
     assert first["Vehicle Frequency"] == 2 + 3 + 2 + 3
-    assert first["Weather Condition"] == "Rain" and first["Traffic Condition"] == "Heavy"
+    assert first["Day of Week"] == "Tuesday" and first["Month of Year"] == "December"
     assert first["Actual Waiting Time"] == pytest.approx(11.5)
-    assert first["Time of Day"] == "Peak Morning" and first["Route Distance"] == 12.5
+    assert first["Time of Day"] == "Morning" and first["Station / Stop"] == "S1"
     assert first["Full Vehicles Missed"] == 1 and first["Frequency Window Start"].endswith("06:00:00")
     assert dataset.iloc[1]["Actual Waiting Time"] == pytest.approx(5.0)
     reasons = " ".join(exclusions.Reason)
@@ -54,7 +54,7 @@ def test_built_dataset_imports_with_declared_units_and_overwrite_is_refused(tmp_
     output = tmp_path / "recorded.xlsx"
     write_dataset(source, output)
     assert len(load_dataset(output)) == 2
-    assert documented_units(output) == {"vehicle_frequency_unit": "vehicles/hour", "route_distance_unit": "km"}
+    assert documented_units(output) == {"vehicle_frequency_unit": "vehicles/hour"}
     assert source_declarations(output, {})["workbook_declares_prototype"] is False
     with pytest.raises(FileExistsError):
         create_workbook(source)

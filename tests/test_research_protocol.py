@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from src.config import ResearchConfig, TARGET
+from conftest import declared_config as ResearchConfig
 from src.experiment import prepare_experiment, run_experiment
 from src.research_protocol import source_declarations
 
@@ -60,7 +61,7 @@ def test_workbook_prototype_declaration_survives_recorded_override(tmp_path, fix
 @pytest.mark.parametrize("notes", [[], {"source_type": "verified"}, {"source_reference": 123}, {"source_reference": "x" * 4001}, {"invented": "field"}])
 def test_research_notes_validation(notes):
     with pytest.raises(ValueError):
-        ResearchConfig(research_notes=notes).validate()
+        __import__("src.config", fromlist=["ResearchConfig"]).ResearchConfig(research_notes=notes).validate()
 
 
 def test_prototype_banner_in_first_spreadsheet_row_is_not_lost(tmp_path, fixture_data):

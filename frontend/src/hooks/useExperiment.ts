@@ -13,7 +13,7 @@ export function useExperiment() {
   const [connected, setConnected] = useState(false)
   const accept = useCallback((s: Experiment) => {
     setExperiment(s)
-    setExperiments(items => items.map(item => item.id === s.id ? {id: s.id, name: s.name, created: s.created, revision: s.revision, status: s.status} : item))
+    setExperiments(items => items.map(item => item.id === s.id ? {id: s.id, name: s.name, created: s.created, revision: s.revision, status: s.status, compatible:s.compatible, transport_mode:s.transport_mode} : item))
     localStorage.setItem('transit-experiment', s.id); setConnected(true)
   }, [])
   useEffect(() => {
@@ -22,7 +22,7 @@ export function useExperiment() {
       if (!alive) return
       setExperiments(list); setConnected(true)
       const remembered = localStorage.getItem('transit-experiment')
-      const id = list.find(s => s.id === remembered)?.id ?? list[0]?.id
+      const id = list.find(s => s.id === remembered && s.compatible)?.id ?? list.find(s=>s.compatible)?.id
       if (id) { const result = await api.get(id); if (alive) accept(result) }
     }).catch(e => { if (alive) setError(e.message) }).finally(() => { if (alive) setConnecting(false) })
     return () => { alive = false }
@@ -45,16 +45,13 @@ export function useExperiment() {
     setWorking(true); setOperation(operation); setError(''); setNotice('')
     try { await task() } catch (e) { setError(e instanceof Error ? e.message : 'The operation failed.'); throw e } finally { setWorking(false); setOperation(null) }
   }
-  const upload = (file: File) => perform(async () => { accept(await api.upload(file)); setExperiments(await api.list()); setNotice('Dataset ready. Select Analyze Dataset to continue.') }, 'upload')
+  const upload = (file: File) => perform(async () => { accept(await api.upload(file)); setExperiments(await api.list()); setNotice('Dataset ready. Select Train & evaluate to continue.') }, 'upload')
   const select = (id: string) => perform(async () => accept(await api.get(id)))
   const cloudImport = (provider: 'google' | 'onedrive', url: string) => perform(async () => {
     accept(await api.cloudImport(provider, url)); setExperiments(await api.list())
-    setNotice('Cloud dataset imported. Select Analyze Dataset to continue.')
+    setNotice('Cloud dataset imported. Select Train & evaluate to continue.')
   }, 'upload')
-  const libraryImport = (filename: string) => perform(async () => {
-    accept(await api.libraryImport(filename)); setExperiments(await api.list())
-    setNotice('Demo dataset ready. Select Analyze Dataset to test the workflow. These are synthetic observations.')
-  }, 'upload')
+
   const configure = (config: ResearchConfig, approve = false) => perform(async () => {
     if (!experiment) return
     accept(await api.configure(experiment, config, approve)); setNotice('Settings saved as a new revision. Train the models again to update results.')
@@ -72,6 +69,6 @@ export function useExperiment() {
     if (!experiment) return
     accept(await api.review(experiment, id, action, reason, corrections)); setNotice('Review decision recorded. Previous model results have been cleared.')
   })
-  return { experiment, experiments, operation, upload, cloudImport, libraryImport, select, configure, train, analyze, review, working, connecting, connected, busy: working || experiment?.status === 'running', error, notice, setError, setNotice }
+  return { experiment, experiments, operation, upload, cloudImport, select, configure, train, analyze, review, working, connecting, connected, busy: working || experiment?.status === 'running', error, notice, setError, setNotice }
 }
 export type Workspace = ReturnType<typeof useExperiment>

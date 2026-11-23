@@ -28,7 +28,7 @@ const tables = [
   ['split_membership','Training and evaluation groups','Which observations were used to learn and which were kept aside to evaluate predictions.'],
   ['category_encoding','Encoded variables','How text categories were represented numerically for the models.'],
   ['severity_thresholds','Station condition thresholds','Quartiles and directions learned only from reviewed training data.'],
-  ['category_evidence','Category scoring evidence','Training category means, scoring rules, and any configured overrides.'],
+  ['category_evidence','Category scoring evidence','Descriptive training means and explicitly approved mappings; no automatic category scores.'],
   ['predictions','All prediction results','Actual waits, predictions, errors, and the seven-factor station scores.'],
   ['comparison','Model comparison differences','The differences between the models on the same evaluation observations.'],
   ['model_diagnostics','Model checks','Technical checks on model fitting and data suitability.'],

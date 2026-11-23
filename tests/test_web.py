@@ -13,10 +13,17 @@ def web(tmp_path):
         yield client
 
 
-def upload(web, data):
+def upload(web, data, declare=False):
     result = web.post("/api/experiments", files={"file": ("ARTIFICIAL_TEST.csv", data.to_csv(index=False).encode(), "text/csv")})
     assert result.status_code == 201, result.text
-    return result.json()
+    state = result.json()
+    if declare:
+        config = {**state['config'], 'observed_targets_confirmed': True, 'prediction_inputs_available': True,
+                  'research_notes': {'transport_mode': 'bus'}}
+        result = web.put('/api/experiments/' + state['id'] + '/config', json={'revision': state['revision'], 'config': config})
+        assert result.status_code == 200, result.text
+        state = result.json()
+    return state
 
 
 def wait_for_job(web, sid):
@@ -30,7 +37,7 @@ def wait_for_job(web, sid):
 def test_validation_and_templates(web, fixture_data):
     assert web.get("/api/health").json()["application"] == "transit-lab"
     assert web.get("/api/templates/xlsx").status_code == 200
-    assert "Station ID" in web.get("/api/templates/csv").text
+    assert "Station / Stop" in web.get("/api/templates/csv").text
     bad = web.post("/api/experiments", files={"file": ("bad.csv", b"wrong\n123", "text/csv")})
     assert bad.status_code == 400 and "Missing required" in bad.text
     assert web.get("/api/not-a-real-route").status_code == 404
@@ -55,7 +62,7 @@ def test_blank_wait_upload_is_prediction_without_creating_training_run(web, fixt
     files = {"file": (f"unknown_wait.{extension}", content)}
     inspected = web.post("/api/datasets/inspect", files=files)
     assert inspected.status_code == 200, inspected.text
-    assert inspected.json() == {"purpose": "prediction", "rows": 1, "recorded_waits": 0,
+    assert {k: inspected.json()[k] for k in ("purpose", "rows", "recorded_waits", "unknown_waits", "target_column_present")} == {"purpose": "prediction", "rows": 1, "recorded_waits": 0,
                                 "unknown_waits": 1, "target_column_present": target != "omitted"}
     assert web.get("/api/experiments").json() == []
     # Accepting a prediction upload never relaxes the labeled-training requirement.
@@ -78,7 +85,11 @@ def test_inspection_rejects_mixed_targets_and_missing_predictors_but_keeps_real_
     missing = inspect(data.drop(columns="Vehicle Frequency"))
     assert missing.status_code == 400 and "Vehicle Frequency" in missing.text
     data["Passenger Volume"] = None
-    assert inspect(data).status_code == 400
+    preview = inspect(data)
+    assert preview.status_code == 200
+    assert preview.json()["purpose"] == "source_review"
+    assert preview.json()["missing_predictors"] == {"Passenger Volume": len(data)}
+    assert web.post("/api/experiments", files={"file": ("test.csv", data.to_csv(index=False).encode())}).status_code == 400
     assert web.get("/api/experiments").json() == []
 
 
@@ -100,33 +111,34 @@ def test_deployment_allows_configured_frontend_origin(monkeypatch, tmp_path):
 
 def test_complete_web_workflow(web, fixture_data):
     labeled = fixture_data.copy()
-    labeled['Transport Mode'] = ['Bus', 'Train'] * (len(labeled) // 2)
+    labeled['Transport Mode'] = 'Bus'
     labeled['Station ID'] = ['ST-01', 'ST-02'] * (len(labeled) // 2)
-    s = upload(web, labeled)
+    s = upload(web, labeled, declare=True)
     base = f"/api/experiments/{s['id']}"
     assert s["metrics"] == [] and s["approved"] is False
     assert web.get(base + "/tables/dataset?limit=5").json()["total"] == 80
-    assert web.post(base + "/train", json={"revision": 1, "selection": "enhanced"}).status_code == 409
-    assert web.post(base + "/train", json={"revision": 1, "selection": "baseline"}).status_code == 202
+    assert web.post(base + "/train", json={"revision": 2, "selection": "enhanced"}).status_code == 409
+    assert web.post(base + "/train", json={"revision": 2, "selection": "baseline"}).status_code == 202
     s = wait_for_job(web, s["id"])
     assert s["trained"] == ["Baseline MLR"]
     assert not s["export_ready"]
     config = s["config"]
-    config["category_severity"] = {"Traffic Condition": {"A": 0, "B": 1, "C": 3}, "Weather Condition": {"W0": 0, "W1": 3}, "Time of Day": {"T0": 0, "T1": 3}}
-    config["numerical_directions"]["Route Distance"] = "higher"
-    config["vehicle_frequency_unit"] = "fixture vehicles/hour"
-    config["route_distance_unit"] = "fixture km"
-    s = web.put(base + "/config", json={"revision": 1, "config": config, "approve_interactions": True}).json()
-    assert s["revision"] == 2 and s["trained"] == []
-    assert web.post(base + "/train", json={"revision": 1}).status_code == 409
-    assert web.post(base + "/train", json={"revision": 2}).status_code == 202
+    from conftest import classification_config
+    approved = classification_config().to_dict()
+    for key in ('category_severity', 'numerical_directions', 'classification_approved'):
+        config[key] = approved[key]
+    config['research_notes']['classification_rationale'] = 'Artificial approval fixture'
+    s = web.put(base + "/config", json={"revision": 2, "config": config, "approve_interactions": True}).json()
+    assert s["revision"] == 3 and s["trained"] == []
+    assert web.post(base + "/train", json={"revision": 2}).status_code == 409
+    assert web.post(base + "/train", json={"revision": 3}).status_code == 202
     s = wait_for_job(web, s["id"])
     assert s["status"] == "complete", s.get("error")
     assert len(s["metrics"]) == 2 and len(s["figures"]) == 12
-    assert len(s["mode_metrics"]) == 4
-    assert s["station_aggregation"]["available"] and s["station_aggregation"]["station_count"] == 2
+    assert len(s["mode_metrics"]) == 2
+    assert s["station_aggregation"]["available"] and s["station_aggregation"]["station_count"] == 3
     station_rows = web.get(base + "/tables/station_summary").json()
-    assert station_rows["total"] == 2
+    assert station_rows["total"] == 3
     assert sum(row["Test Records"] for row in station_rows["rows"]) == s["test"]
     assert web.get(base + "/download/csv?table=mode_metrics").status_code == 200
     assert s["study_available"] and len(s["study_metrics"]) == 3
@@ -159,11 +171,21 @@ def test_complete_web_workflow(web, fixture_data):
     assert web.get(base + "/download/csv?table=../../metadata").status_code == 404
     assert web.get(base + "/tables/classification").json()["total"] == 16
     target_free = labeled.drop(columns=["Actual Waiting Time"]).to_csv(index=False).encode()
-    forecast = web.post(base + "/predict", files={"file": ("future.csv", target_free, "text/csv")})
+    forecast = web.post(base + "/predict", data={"transport_mode":"bus", "inputs_available":"true"}, files={"file": ("future.csv", target_free, "text/csv")})
     assert forecast.status_code == 200, forecast.text
+    denied = web.post(base + "/predict", files={"file": ("future.csv", target_free)})
+    assert denied.status_code == 400 and "prediction time" in denied.text
+    wrong_mode = web.post(base + "/predict", data={"transport_mode": "train", "inputs_available": "true"},
+                          files={"file": ("future.csv", target_free)})
+    assert wrong_mode.status_code == 400 and "does not match" in wrong_mode.text
+    unknown = labeled.drop(columns="Actual Waiting Time").copy()
+    unknown["Station / Stop"] = "UNSEEN"
+    denied = web.post(base + "/predict", data={"transport_mode": "bus", "inputs_available": "true"},
+                      files={"file": ("unknown.csv", unknown.to_csv(index=False).encode())})
+    assert denied.status_code == 400 and "Unseen station" in denied.text
     assert len(forecast.json()["rows"]) == len(labeled)
     assert "Enhanced Predicted Waiting Time" in forecast.json()["columns"]
-    assert forecast.json()["station_aggregation"]["station_count"] == 2
+    assert forecast.json()["station_aggregation"]["station_count"] == 3
     assert "Actual Waiting Time" not in forecast.json()["columns"]
     before_forecast = web.get(base).json()
     for extension in ("csv", "xlsx"):
@@ -175,7 +197,7 @@ def test_complete_web_workflow(web, fixture_data):
             content = stream.getvalue()
         else:
             content = blank.to_csv(index=False).encode()
-        predicted = web.post(base + "/predict", data={"revision": s["revision"]},
+        predicted = web.post(base + "/predict", data={"revision": s["revision"], "transport_mode":"bus", "inputs_available":"true"},
                              files={"file": (f"blank_waits.{extension}", content)})
         assert predicted.status_code == 200, predicted.text
         # Blank targets cannot enter either model or create pretend accuracy scores.
@@ -223,18 +245,18 @@ def test_single_action_analysis_preserves_reviews_and_requires_confirmation(web,
     data = fixture_data.copy()
     data["Passenger Volume"] = 10.
     data.loc[data.index[:4], "Passenger Volume"] = 100000.
-    s = upload(web, data)
+    s = upload(web, data, declare=True)
     base = f"/api/experiments/{s['id']}"
     assert s["flagged"] > 1
-    assert web.post(base + "/analyze", json={"revision": 1}).status_code == 409
-    assert web.post(base + "/analyze", json={"revision": 1, "approve_interactions": True}).status_code == 409
-    assert web.post(base + "/analyze", json={"revision": 1, "approve_interactions": True, "retain_remaining": True}).status_code == 400
+    assert web.post(base + "/analyze", json={"revision": 2}).status_code == 409
+    assert web.post(base + "/analyze", json={"revision": 2, "approve_interactions": True}).status_code == 409
+    assert web.post(base + "/analyze", json={"revision": 2, "approve_interactions": True, "retain_remaining": True}).status_code == 400
     unchanged = web.get(base).json()
-    assert unchanged["revision"] == 1 and unchanged["approved"] is False and unchanged["reviewed"] == 0
+    assert unchanged["revision"] == 2 and unchanged["approved"] is False and unchanged["reviewed"] == 0
     flag = web.get(base + "/tables/flags").json()["rows"][0]
     rid = flag["Record ID"]
-    s = web.put(base + "/reviews", json={"revision": 1, "record_id": rid, "action": "exclude", "reason": "Artificial test of exclusion persistence"}).json()
-    assert web.post(base + "/analyze", json={"revision": 1, "approve_interactions": True, "retain_remaining": True, "retain_reason": "Fixture"}).status_code == 409
+    s = web.put(base + "/reviews", json={"revision": 2, "record_id": rid, "action": "exclude", "reason": "Artificial test of exclusion persistence"}).json()
+    assert web.post(base + "/analyze", json={"revision": 2, "approve_interactions": True, "retain_remaining": True, "retain_reason": "Fixture"}).status_code == 409
     assert web.post(base + "/analyze", json={"revision": s["revision"], "approve_interactions": True, "retain_remaining": True, "retain_reason": "Retain artificial observations for software test"}).status_code == 202
     s = wait_for_job(web, s["id"])
     assert s["status"] == "complete" and s["reviewed"] == s["flagged"]
@@ -264,7 +286,7 @@ def test_invalid_web_settings_do_not_mutate_experiment(web, fixture_data, key, v
 
 
 def test_legacy_classification_requires_rerun_without_overwriting_saved_results(web, fixture_data):
-    s = upload(web, fixture_data)
+    s = upload(web, fixture_data, declare=True)
     base = f"/api/experiments/{s['id']}"
     response = web.post(base + '/analyze', json={'revision': s['revision'], 'approve_interactions': True,
                                               'retain_remaining': True, 'retain_reason': 'Artificial fixture'})

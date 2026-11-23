@@ -14,14 +14,19 @@ const fields = [
 
 export function ResearchDocumentation({s, w, close}: {s: Experiment; w: Workspace; close: () => void}) {
   const [notes, setNotes] = useState<NonNullable<ResearchConfig['research_notes']>>({...s.config.research_notes})
+  const [targets, setTargets] = useState(s.config.observed_targets_confirmed)
+  const [available, setAvailable] = useState(s.config.prediction_inputs_available)
   return <Modal title="Research documentation" close={close} canClose={!w.busy} className="wide-modal"><form onSubmit={e => {
     e.preventDefault()
-    void w.configure({...s.config, research_notes: Object.fromEntries(Object.entries(notes).map(([key, value]) => [key, value.trim()]))}).then(close).catch(() => {})
+    void w.configure({...s.config, observed_targets_confirmed:targets, prediction_inputs_available:available, research_notes: Object.fromEntries(Object.entries(notes).map(([key, value]) => [key, value.trim()]))}).then(close).catch(() => {})
   }}><div className="modal-body">
     <p className="muted">These notes are researcher declarations, not automatic verification. Saving records a new revision; analyze again to include them in the exported results.</p>
     {s.provenance?.workbook_declares_prototype && <p className="decision-note">The workbook declares prototype or simulated data. A recorded-data selection cannot override that declaration.</p>}
     <label>Data source type<select aria-label="Data source type" value={notes.source_type || 'unknown'} disabled={w.busy} onChange={e => setNotes({...notes, source_type: e.target.value})}><option value="unknown">Not documented yet</option><option value="recorded">Recorded observations (researcher declaration)</option><option value="simulated">Simulated / prototype data</option></select></label>
-    <label>Dataset transport mode<select aria-label="Dataset transport mode" disabled={w.busy} value={notes.transport_mode || 'unknown'} onChange={e => setNotes({...notes, transport_mode: e.target.value})}><option value="unknown">Not specified</option><option value="bus">Bus only</option><option value="train">Train only</option><option value="mixed">Mixed bus and train</option></select><small>For mixed datasets, add a Transport Mode column containing Bus or Train for each row. Recorded row labels take precedence. This labels outputs and does not add a predictor or train separate models.</small></label>
+    <label>Dataset transport mode<select aria-label="Dataset transport mode" disabled={w.busy} value={notes.transport_mode || 'unknown'} onChange={e => setNotes({...notes, transport_mode: e.target.value})}><option value="unknown">Not specified</option><option value="bus">Bus only</option><option value="train">Train only</option></select><small>Use one mode per dataset and train separate Bus and Train models. Recorded row labels must match this declaration.</small></label>
+    <label className="checkbox-line"><input type="checkbox" aria-label="Confirm recorded waiting times" checked={targets} onChange={e=>setTargets(e.target.checked)}/>Actual Waiting Time contains genuine recorded passenger waits, not estimates from frequency or simulated values.</label>
+    <label className="checkbox-line"><input type="checkbox" aria-label="Confirm training input availability" checked={available} onChange={e=>setAvailable(e.target.checked)}/>Passenger Volume and Vehicle Frequency use completed observation windows available at the intended prediction time.</label>
+    <p className="section-caption">NYC station-complex counts may span platforms. AC Transit APC may cover only equipped buses. SUNT presence counts need distinct arrival identification before they represent hourly service frequency. Document these limits in the row definition below.</p>
     {fields.map(([key, label, hint]) => <label key={key}>{label}<textarea aria-label={label} aria-describedby={`research-note-${key}`} rows={2} maxLength={4000} disabled={w.busy} value={notes[key] || ''} onChange={e => setNotes({...notes, [key]: e.target.value})}/><small id={`research-note-${key}`}>{hint}</small></label>)}
     {!!s.provenance?.workbook_notes.length && <details className="disclosure"><summary>Source notes supplied with the workbook</summary><div className="disclosure-body">{s.provenance.workbook_notes.map((row, index) => <p className="section-caption" key={index}>{Object.values(row).join(' | ')}</p>)}</div></details>}
     {w.error && <p className="inline-error" role="alert">{w.error}</p>}
@@ -30,7 +35,7 @@ export function ResearchDocumentation({s, w, close}: {s: Experiment; w: Workspac
 
 export function ControlledComparisons({s}: {s: Experiment}) {
   return <details className="disclosure controlled-comparisons"><summary>Separate data review and interaction effects</summary><div className="disclosure-body">
-    {!s.study_available ? <p className="decision-note">This saved run predates the three-arm protocol. Select Analyze Dataset again to generate the additional comparison.</p> : <>
+    {!s.study_available ? <p className="decision-note">This saved run predates the three-arm protocol. Select Train & evaluate again to generate the additional comparison.</p> : <>
       <p className="section-caption">All three experiments use the same {s.test} test observations. A uses the original training records. B uses reviewed records. C adds selected interactions to the same reviewed records as B.</p>
       <div className="table-scroll"><table aria-label="Controlled experiment metrics"><thead><tr><th>Experiment</th><th>Training rows</th><th>MSE</th><th>RMSE (min)</th></tr></thead><tbody>{s.study_metrics?.map(row => <tr key={String(row.Arm)}><th scope="row">{String(row.Arm)}: {String(row.Model)}</th><td>{format(row['Training Rows'], 0)}</td><td>{format(row.MSE, 4)}</td><td>{format(row.RMSE, 4)}</td></tr>)}</tbody></table></div>
       <ul className="protocol-comparisons">{s.study_comparisons?.map(row => <li key={String(row.Comparison)}><strong>{String(row.Comparison)}: {String(row.Question)}</strong><span>{String(row['Outcome for second arm'])}. RMSE reduction: {format(row['RMSE reduction (min)'], 4)} min.</span></li>)}</ul>
@@ -47,7 +52,7 @@ export function StatisticalChecks({s}: {s: Experiment}) {
   const cvTest = v?.cv_test[0]
   const agreement = Object.fromEntries((v?.classification ?? []).map(row => [String(row.Measure), row.Value]))
   return <details className="disclosure statistical-checks"><summary>Statistical checks</summary><div className="disclosure-body">
-    {!v?.available ? <p className="decision-note">This saved run predates the statistical checks. Select Analyze Dataset again to generate them.</p> : <>
+    {!v?.available ? <p className="decision-note">This saved run predates the statistical checks. Select Train & evaluate again to generate them.</p> : <>
       <h4>Paired tests on the {s.test} evaluation observations</h4>
       <p className="section-caption">Each observation's squared error under the first experiment minus the second. p-values below 0.05 indicate a difference unlikely under no true difference, for this dataset only.</p>
       <div className="table-scroll"><table aria-label="Paired significance tests"><thead><tr><th>Comparison</th><th>Test</th><th>p-value</th><th>Result</th></tr></thead><tbody>{v.heldout.map((row, index) => <tr key={index}><td>{String(row.Comparison)}</td><td>{String(row.Test)}</td><td>{pValue(row['p-value'])}</td><td>{String(row.Result)}</td></tr>)}</tbody></table></div>

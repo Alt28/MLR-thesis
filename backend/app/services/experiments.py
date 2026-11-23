@@ -9,9 +9,9 @@ import uuid
 import joblib
 import pandas as pd
 from fastapi import HTTPException
-from src.config import ResearchConfig, ROW_ID, PREDICTORS, TARGET
-from src.data_loader import load_prediction_dataset_bytes
-from src.experiment import prepare_experiment, run_experiment
+from src.config import ResearchConfig, SCHEMA_VERSION, ROW_ID, PREDICTORS, TARGET
+from src.data_loader import load_prediction_dataset_bytes, dataset_mode, SOURCE_WARNINGS
+from src.experiment import prepare_experiment, run_experiment, require_training_declarations
 from src.irregularity_detection import apply_reviews, review_fingerprint
 from src.station_classification import StationClassifier, CLASSIFICATION_VERSION, aggregate_station_scores
 from src.mlr_model import MLRModels
@@ -49,7 +49,9 @@ class ExperimentStore:
 
     def save(self, session):
         folder = self.directory(session["id"])
-        serializable = {k: v for k, v in session.items() if k not in ("prepared", "partials", "result", "folder")}
+        modes, _ = transport_labels(session["prepared"].original, session["prepared"].config)
+        session["transport_mode"] = next(iter(set(modes))) if len(set(modes)) == 1 else "unknown"
+        serializable = {k: v for k, v in session.items() if k not in ("prepared", "partials", "result", "folder", "_cache")}
         temporary = folder / "metadata.tmp"
         temporary.write_text(json.dumps(serializable, indent=2, allow_nan=False), encoding="utf-8")
         temporary.replace(folder / "metadata.json")
@@ -64,6 +66,8 @@ class ExperimentStore:
             path = folder / "metadata.json"
             if not path.exists(): raise HTTPException(404, "Experiment not found.")
             s = json.loads(path.read_text(encoding="utf-8"))
+            if s.get("config", {}).get("schema_version") != SCHEMA_VERSION:
+                raise HTTPException(409, "This saved experiment uses the previous predictor schema. Its files are preserved; import a current six-predictor dataset and train a new model.")
             s["prepared"] = prepare_experiment(folder / s["source_file"], ResearchConfig(**s["config"]))
             if s["prepared"].source_hash != s["source_hash"]:
                 raise HTTPException(409, "The stored source file changed. Import it as a new experiment.")
@@ -106,7 +110,9 @@ class ExperimentStore:
         items = []
         for path in self.root.glob("*/metadata.json"):
             metadata = json.loads(path.read_text(encoding="utf-8"))
-            items.append({k: metadata[k] for k in ("id", "name", "created", "revision", "status")})
+            items.append({**{k: metadata[k] for k in ("id", "name", "created", "revision", "status")},
+                          "compatible": metadata.get("config", {}).get("schema_version") == SCHEMA_VERSION,
+                          "transport_mode": metadata.get("transport_mode", "unknown")})
         return sorted(items, key=lambda s: s["created"], reverse=True)
 
     def check(self, s, revision):
@@ -146,17 +152,39 @@ class ExperimentStore:
             self.save(s)
             return self.summary(s)
 
+    def derived(self, s):
+        """Reviewed training rows, classifier and partial metrics, reused until the experiment changes.
+
+        Every change (configuration, review, training) bumps the revision or replaces partials/result,
+        which changes the key; results pages otherwise refit the classifier on every request.
+        """
+        key = (s["revision"], tuple(s["partials"]), id(s["result"]), id(s["prepared"]))
+        cache = s.get("_cache")
+        if cache is None or cache["key"] != key:
+            p = s["prepared"]
+            train, audit = apply_reviews(p.training, p.flags, s["decisions"])
+            cache = {"key": key, "train": train, "audit": audit,
+                     "classifier": StationClassifier(p.config).fit(train), "tables": None, "metrics": None}
+            s["_cache"] = cache
+        return cache
+
     def summary(self, s):
         p = s["prepared"]
-        train, audit = apply_reviews(p.training, p.flags, s["decisions"])
-        classifier = StationClassifier(p.config).fit(train)
+        modes, _ = transport_labels(p.original, p.config)
+        mode = next(iter(set(modes))) if len(set(modes)) == 1 else "unknown"
+        s["transport_mode"] = mode
+        cache = self.derived(s)
+        train, classifier = cache["train"], cache["classifier"]
         combined = s["result"]
         classification_stale = combined is not None and getattr(combined.classifier, "method_version", 1) != CLASSIFICATION_VERSION
-        metric_rows = []
-        for label, fitted in s["partials"].items():
-            prediction = fitted.predict(p.test)
-            prefix = "Baseline" if label == "Baseline MLR" else "Enhanced"
-            metric_rows.append({"Model": label, **metrics(p.test[TARGET], prediction[f"{prefix} Predicted Waiting Time"])})
+        if cache["metrics"] is None:
+            metric_rows = []
+            for label, fitted in s["partials"].items():
+                prediction = fitted.predict(p.test)
+                prefix = "Baseline" if label == "Baseline MLR" else "Enhanced"
+                metric_rows.append({"Model": label, **metrics(p.test[TARGET], prediction[f"{prefix} Predicted Waiting Time"])})
+            cache["metrics"] = metric_rows
+        metric_rows = cache["metrics"]
         distribution = combined.predictions["Overall Station Classification"].value_counts().to_dict() if combined is not None else {}
         export = Path(s["export_dir"]) if s["export_dir"] else None
         study = getattr(combined, "study", {}) if combined is not None else {}
@@ -165,6 +193,7 @@ class ExperimentStore:
         def checks(name):
             return records(validation[name]) if isinstance(validation.get(name), pd.DataFrame) else []
         return dict(id=s["id"], name=s["name"], created=s["created"], revision=s["revision"], status=s["status"], error=s["error"],
+                    compatible=True, transport_mode=mode, schema_version=SCHEMA_VERSION,
                     approved=s["approved"], config=s["config"], records=len(p.original), training=len(p.training), reviewed_training=len(train),
                     test=len(p.test), flagged=int(p.flags[ROW_ID].nunique()), reviewed=len(s["decisions"]),
                     metadata=[c for c in p.original.columns if c not in (*PREDICTORS, TARGET, ROW_ID)],
@@ -195,8 +224,10 @@ class ExperimentStore:
         with self.lock:
             s = self.get(sid)
             p = s["prepared"]
-            train, audit = apply_reviews(p.training, p.flags, s["decisions"])
-            classifier = StationClassifier(p.config).fit(train)
+            cache = self.derived(s)
+            if cache["tables"] is not None:
+                return self._page(s, cache["tables"], name, search, offset, limit, transport_mode)
+            audit, classifier = cache["audit"], cache["classifier"]
             tables = {"dataset": p.original, "bounds": p.iqr_bounds.reset_index(),
                       "flags": p.flags.merge(audit, on=ROW_ID, how="left"), "audit": audit,
                       "history": pd.DataFrame([{**e, "Details": json.dumps({k: v for k, v in e.items() if k not in ("at", "revision", "event")})} for e in s["history"]]).reindex(columns=["at", "revision", "event", "Details"]),
@@ -208,18 +239,23 @@ class ExperimentStore:
                 tables.update(result_tables(s["result"]))
                 output = s["result"].predictions
                 tables["classification"] = output[[c for c in output.columns if c not in ("Baseline Error (actual - predicted)", "Enhanced Error (actual - predicted)")]]
-            if name not in tables: raise HTTPException(404, "This result is not available yet.")
-            frame = tables[name]
-            if transport_mode != "all":
-                if transport_mode not in ("bus", "train", "unspecified") or name not in ("predictions", "classification", "dataset"):
-                    raise HTTPException(400, "Transport filters apply only to dataset and prediction records.")
-                labels, _ = transport_labels(p.original, p.config)
-                ids = labels.index[labels.eq(transport_mode)]
-                frame = frame.loc[frame[ROW_ID].isin(ids)]
-            if search:
-                mask = frame.astype(str).apply(lambda col: col.str.contains(search, case=False, regex=False)).any(axis=1)
-                frame = frame.loc[mask]
-            return {"columns": list(frame.columns), "rows": records(frame.iloc[offset:offset + limit]), "total": len(frame), "offset": offset}
+            cache["tables"] = tables
+            return self._page(s, tables, name, search, offset, limit, transport_mode)
+
+    def _page(self, s, tables, name, search, offset, limit, transport_mode):
+        p = s["prepared"]
+        if name not in tables: raise HTTPException(404, "This result is not available yet.")
+        frame = tables[name]
+        if transport_mode != "all":
+            if transport_mode not in ("bus", "train", "unspecified") or name not in ("predictions", "classification", "dataset"):
+                raise HTTPException(400, "Transport filters apply only to dataset and prediction records.")
+            labels, _ = transport_labels(p.original, p.config)
+            ids = labels.index[labels.eq(transport_mode)]
+            frame = frame.loc[frame[ROW_ID].isin(ids)]
+        if search:
+            mask = frame.astype(str).apply(lambda col: col.str.contains(search, case=False, regex=False)).any(axis=1)
+            frame = frame.loc[mask]
+        return {"columns": list(frame.columns), "rows": records(frame.iloc[offset:offset + limit]), "total": len(frame), "offset": offset}
 
     def record(self, sid, record_id):
         s = self.get(sid)
@@ -227,7 +263,7 @@ class ExperimentStore:
         if record_id not in p.original.index: raise HTTPException(404, "Record not found.")
         return {"original": records(p.original.loc[[record_id]])[0], "decision": s["decisions"].get(record_id), "flagged": record_id in set(p.flags[ROW_ID])}
 
-    def predict(self, sid, name, content, revision=None):
+    def predict(self, sid, name, content, revision=None, transport_mode="unknown", inputs_available=False):
         with self.lock:
             s = self.get(sid)
             if revision is not None:
@@ -237,7 +273,18 @@ class ExperimentStore:
             if getattr(s["result"].classifier, "method_version", 1) != CLASSIFICATION_VERSION:
                 raise HTTPException(409, "Re-run the analysis to update the saved classification rules before predicting.")
             data = load_prediction_dataset_bytes(name, content)
-            predictions = s["result"].models.predict(data)
+            mode = dataset_mode(data)
+            if mode != "unknown" and transport_mode not in ("unknown", mode):
+                raise ValueError("The selected transport mode does not match the uploaded rows.")
+            mode = mode if mode != "unknown" else transport_mode
+            trained_modes, _ = transport_labels(s["prepared"].original, s["prepared"].config)
+            if mode not in ("bus", "train") or set(trained_modes) != {mode}:
+                raise ValueError("Choose a compatible trained model for the uploaded Bus or Train dataset. Transport modes cannot be pooled.")
+            if not inputs_available:
+                raise ValueError("Confirm that Passenger Volume and Vehicle Frequency were available at prediction time, not counted in a future window.")
+            if "Transport Mode" not in data:
+                data["Transport Mode"] = mode.title()
+            predictions = s["result"].models.predict(data, strict_categories=True)
             classified = s["result"].classifier.classify(
                 data, predictions["Enhanced Predicted Waiting Time"])
             originals = data.copy()
@@ -254,6 +301,7 @@ class ExperimentStore:
                 "station_summary": records(station_summary),
                 "station_aggregation": station_aggregation,
                 "experiment_id": s["id"], "model_revision": s["revision"],
+                "schema_version": SCHEMA_VERSION, "warnings": list(SOURCE_WARNINGS),
             }
 
     def analyze(self, sid, request):
@@ -262,6 +310,7 @@ class ExperimentStore:
         with self.lock:
             s = self.get(sid)
             self.check(s, request.revision)
+            require_training_declarations(s["prepared"])
             if not s["approved"] and not request.approve_interactions:
                 raise HTTPException(409, "Approve the selected interaction terms before analysis.")
             remaining = sorted(set(s["prepared"].flags[ROW_ID]) - set(s["decisions"]))
@@ -285,6 +334,7 @@ class ExperimentStore:
         with self.lock:
             s = self.get(sid)
             self.check(s, request.revision)
+            require_training_declarations(s["prepared"])
             if request.selection in ("both", "enhanced") and not s["approved"]:
                 raise HTTPException(409, "Apply your interaction specification before training the enhanced model.")
             s.update(status="running", error=None)

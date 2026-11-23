@@ -1,22 +1,37 @@
 import { ArrowRight, BusFront, Database, FileSpreadsheet, LibraryBig, LoaderCircle, Search, TrainFront } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Workspace } from '../hooks/useExperiment'
-import { datasetLibrary } from '../services/datasetLibrary'
+import { api, ApiError } from '../services/api'
 import type { LibraryDataset } from '../services/datasetLibrary'
 import { Modal } from './Common'
 import { friendlyError } from '../services/presentation'
 
-export function CloudImport({w, imported}: {w: Workspace; imported: () => void}) {
+export function CloudImport({w, upload}: {w: Workspace; upload: (file: File) => Promise<boolean>}) {
   const [open, setOpen] = useState(false)
+  const [datasetLibrary, setLibrary] = useState<LibraryDataset[]>([])
+  const [listing, setListing] = useState(false)
+  useEffect(() => {
+    if (!open) return
+    let active = true; setListing(true); setLibrary([])
+    api.library().then(items => {if (active) setLibrary(items)}).catch(e => {
+      if(active) setError(e instanceof ApiError && e.status === 404
+        ? 'This window is connected to an older server. Open Start MLR System.bat again and use the browser window it opens. Your collected files are still saved.'
+        : e.message)
+    }).finally(() => {if(active) setListing(false)})
+    return () => {active = false}
+  }, [open])
   const [query, setQuery] = useState('')
   const [error, setError] = useState('')
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const busy = w.busy || loadingId !== null
   const matches = datasetLibrary.filter(item => `${item.title} ${item.mode} ${item.filename}`.toLowerCase().includes(query.trim().toLowerCase()))
-  const finish = () => {imported(); setOpen(false)}
   const select = async (item: LibraryDataset) => {
     setError(''); setLoadingId(item.id)
-    try {await w.libraryImport(item.filename); finish()}
+    try {
+      const file = await api.libraryFile(item)
+      if (!await upload(file)) throw new Error('The file needs attention. Close this window to see the import message.')
+      setOpen(false)
+    }
     catch (e) {
       const message = e instanceof Error ? e.message : 'Could not import this dataset. Please try again.'
       setError(`${item.title}: ${message.includes('Missing required columns:') ? friendlyError(message, 'dataset') : message}`)
@@ -38,10 +53,11 @@ export function CloudImport({w, imported}: {w: Workspace; imported: () => void})
             <span className="library-file-copy"><span className="library-file-title">{item.title}</span><span className="library-file-description">{item.filename}</span><span className="library-file-meta">{item.records.toLocaleString()} {item.recordLabel} · {item.filename.endsWith('.csv') ? 'CSV' : 'XLSX'}</span>{item.note && <span className="library-file-note">{item.note}</span>}</span>
             <span className="library-select">{loadingId === item.id ? 'Loading…' : 'Import'}<ArrowRight size={16}/></span>
           </button>)}
-          {!matches.length && <div className="library-empty"><Search size={24}/><strong>No datasets found</strong><p>Try searching for bus or train.</p><button className="text-button" onClick={() => setQuery('')}>Clear search</button></div>}
+          {listing && <p role="status">Loading collected datasets...</p>}
+          {!listing && !error && !matches.length && <div className="library-empty"><Search size={24}/><strong>No datasets found</strong><p>No collected files match this search. Use Upload Dataset or register the ETL output with this server.</p><button className="text-button" onClick={() => setQuery('')}>Clear search</button></div>}
           {busy && <p role="status" className="cloud-import-status"><LoaderCircle size={17} className="spinning"/>Loading and checking your dataset…</p>}
         </div>
-        <div className="library-footer"><span><Database size={14}/>Stored on this Transit Lab server</span><span role="status">{matches.length} {matches.length === 1 ? 'dataset' : 'datasets'}</span></div>
+        <div className="library-footer"><span><Database size={14}/>Stored on this Transit Lab server</span><span role="status">{error ? 'Library unavailable' : listing ? 'Loading...' : `${matches.length} ${matches.length === 1 ? 'dataset' : 'datasets'}`}</span></div>
     </Modal>}
   </>
 }
