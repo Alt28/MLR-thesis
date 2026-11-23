@@ -1,0 +1,272 @@
+[
+  {
+    "id": "train_nyc_headway_waits-training",
+    "title": "NYC Train - TRAINING (headway waits)",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_TRAINING.csv",
+    "records": 10000,
+    "recordLabel": "observations",
+    "kind": "collected",
+    "note": "Up to 10000 rows with the smallest SHA-256 Record ID hashes (reproducible, station-agnostic). Headway-derived expected platform wait (minutes): exact mean, over the local hour, of time until the next recorded departure of the passenger's route at the same platform direction; averaged over route-directions serving the complex. Observed departures (TransitLab/MTA GTFS-realtime), random passenger arrival assumed; capacity/denied boarding not represented. Not an individually measured passenger wait."
+  },
+  {
+    "id": "nyc_train_prediction_test_200",
+    "title": "NYC Train - PREDICTION TEST (200 rows, blank waits)",
+    "mode": "Train",
+    "filename": "NYC_TRAIN_PREDICTION_TEST_200.csv",
+    "records": 200,
+    "recordLabel": "observations",
+    "kind": "collected",
+    "note": "200 NYC station-hours not in the training file, with Actual Waiting Time left blank for Test & Predict. The real waits are in data/samples/NYC_TRAIN_PREDICTION_TEST_200_answers.csv."
+  },
+  {
+    "id": "train_nyc_complex-0",
+    "title": "NYC Train - overview",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_COMPLEX_OVERVIEW.xlsx",
+    "records": 1344,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six historical complex-level predictors; blank waiting times. Overview is a subset; CSV parts together contain all matched rows. No trained model or accuracy results included."
+  },
+  {
+    "id": "train_nyc_complex-1",
+    "title": "NYC Train - CSV part 1",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_COMPLEX_part_001.csv",
+    "records": 20642,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six historical complex-level predictors; blank waiting times. Overview is a subset; CSV parts together contain all matched rows. No trained model or accuracy results included."
+  },
+  {
+    "id": "train_nyc_complex-2",
+    "title": "NYC Train - CSV part 2",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_COMPLEX_part_002.csv",
+    "records": 20652,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six historical complex-level predictors; blank waiting times. Overview is a subset; CSV parts together contain all matched rows. No trained model or accuracy results included."
+  },
+  {
+    "id": "train_nyc_complex-3",
+    "title": "NYC Train - CSV part 3",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_COMPLEX_part_003.csv",
+    "records": 20645,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six historical complex-level predictors; blank waiting times. Overview is a subset; CSV parts together contain all matched rows. No trained model or accuracy results included."
+  },
+  {
+    "id": "train_nyc_complex-4",
+    "title": "NYC Train - CSV part 4",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_COMPLEX_part_004.csv",
+    "records": 20640,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six historical complex-level predictors; blank waiting times. Overview is a subset; CSV parts together contain all matched rows. No trained model or accuracy results included."
+  },
+  {
+    "id": "train_nyc_complex-5",
+    "title": "NYC Train - CSV part 5",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_COMPLEX_part_005.csv",
+    "records": 20633,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six historical complex-level predictors; blank waiting times. Overview is a subset; CSV parts together contain all matched rows. No trained model or accuracy results included."
+  },
+  {
+    "id": "train_nyc_complex-6",
+    "title": "NYC Train - CSV part 6",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_COMPLEX_part_006.csv",
+    "records": 20647,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six historical complex-level predictors; blank waiting times. Overview is a subset; CSV parts together contain all matched rows. No trained model or accuracy results included."
+  },
+  {
+    "id": "train_nyc_complex-7",
+    "title": "NYC Train - CSV part 7",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_COMPLEX_part_007.csv",
+    "records": 20643,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six historical complex-level predictors; blank waiting times. Overview is a subset; CSV parts together contain all matched rows. No trained model or accuracy results included."
+  },
+  {
+    "id": "train_nyc_complex-8",
+    "title": "NYC Train - CSV part 8",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_COMPLEX_part_008.csv",
+    "records": 20654,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six historical complex-level predictors; blank waiting times. Overview is a subset; CSV parts together contain all matched rows. No trained model or accuracy results included."
+  },
+  {
+    "id": "train_nyc_complex-9",
+    "title": "NYC Train - CSV part 9",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_COMPLEX_part_009.csv",
+    "records": 20623,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six historical complex-level predictors; blank waiting times. Overview is a subset; CSV parts together contain all matched rows. No trained model or accuracy results included."
+  },
+  {
+    "id": "train_nyc_complex-10",
+    "title": "NYC Train - CSV part 10",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_COMPLEX_part_010.csv",
+    "records": 14484,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six historical complex-level predictors; blank waiting times. Overview is a subset; CSV parts together contain all matched rows. No trained model or accuracy results included."
+  },
+  {
+    "id": "bus_ac_transit_source_review-0",
+    "title": "AC Transit Bus - overview",
+    "mode": "Bus",
+    "filename": "BUS_AC_TRANSIT_SOURCE_REVIEW_OVERVIEW.xlsx",
+    "records": 6016,
+    "recordLabel": "source observations",
+    "kind": "source_review",
+    "note": "Recorded APC subset; Vehicle Frequency and waiting times are missing. Opens for source review; cannot train or predict."
+  },
+  {
+    "id": "bus_ac_transit_source_review-1",
+    "title": "AC Transit Bus - CSV part 1",
+    "mode": "Bus",
+    "filename": "BUS_AC_TRANSIT_SOURCE_REVIEW_part_001.csv",
+    "records": 6016,
+    "recordLabel": "source observations",
+    "kind": "source_review",
+    "note": "Recorded APC subset; Vehicle Frequency and waiting times are missing. Opens for source review; cannot train or predict."
+  },
+  {
+    "id": "train_nyc_headway_waits-0",
+    "title": "NYC Train + headway waits - overview",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_OVERVIEW.xlsx",
+    "records": 1344,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  },
+  {
+    "id": "train_nyc_headway_waits-1",
+    "title": "NYC Train + headway waits - CSV part 1",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_part_001.csv",
+    "records": 17066,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  },
+  {
+    "id": "train_nyc_headway_waits-2",
+    "title": "NYC Train + headway waits - CSV part 2",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_part_002.csv",
+    "records": 16972,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  },
+  {
+    "id": "train_nyc_headway_waits-3",
+    "title": "NYC Train + headway waits - CSV part 3",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_part_003.csv",
+    "records": 17030,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  },
+  {
+    "id": "train_nyc_headway_waits-4",
+    "title": "NYC Train + headway waits - CSV part 4",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_part_004.csv",
+    "records": 16990,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  },
+  {
+    "id": "train_nyc_headway_waits-5",
+    "title": "NYC Train + headway waits - CSV part 5",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_part_005.csv",
+    "records": 17048,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  },
+  {
+    "id": "train_nyc_headway_waits-6",
+    "title": "NYC Train + headway waits - CSV part 6",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_part_006.csv",
+    "records": 17007,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  },
+  {
+    "id": "train_nyc_headway_waits-7",
+    "title": "NYC Train + headway waits - CSV part 7",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_part_007.csv",
+    "records": 17063,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  },
+  {
+    "id": "train_nyc_headway_waits-8",
+    "title": "NYC Train + headway waits - CSV part 8",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_part_008.csv",
+    "records": 17022,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  },
+  {
+    "id": "train_nyc_headway_waits-9",
+    "title": "NYC Train + headway waits - CSV part 9",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_part_009.csv",
+    "records": 17058,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  },
+  {
+    "id": "train_nyc_headway_waits-10",
+    "title": "NYC Train + headway waits - CSV part 10",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_part_010.csv",
+    "records": 16600,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  },
+  {
+    "id": "train_nyc_headway_waits-11",
+    "title": "NYC Train + headway waits - CSV part 11",
+    "mode": "Train",
+    "filename": "TRAIN_NYC_HEADWAY_WAITS_part_011.csv",
+    "records": 17009,
+    "recordLabel": "source observations",
+    "kind": "collected",
+    "note": "Six complex-level predictors with a headway-derived waiting-time target (see Waiting Time Definition). Use the separate TRAINING file to train; parts contain every matched row."
+  }
+]

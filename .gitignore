@@ -15,7 +15,11 @@ __pycache__/
 outputs/*
 !outputs/.gitkeep
 models/*
-data/collected/
+# Collected data is large and stays local; only the small packages the app needs are versioned.
+data/collected/*
+!data/collected/library.json
+!data/collected/TRAIN_NYC_HEADWAY_WAITS_TRAINING.csv
+!data/collected/NYC_TRAIN_PREDICTION_TEST_200.csv
 !models/.gitkeep
 docs/thesis-extracted.txt
 data/*.xlsx
