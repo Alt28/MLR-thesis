@@ -20,6 +20,8 @@ data/collected/*
 !data/collected/library.json
 !data/collected/TRAIN_NYC_HEADWAY_WAITS_TRAINING.csv
 !data/collected/NYC_TRAIN_PREDICTION_TEST_200.csv
+!data/collected/BUS_NYC_HEADWAY_WAITS_TRAINING.csv
+!data/collected/NYC_BUS_PREDICTION_TEST_200.csv
 !models/.gitkeep
 docs/thesis-extracted.txt
 data/*.xlsx

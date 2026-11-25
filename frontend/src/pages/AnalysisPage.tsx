@@ -46,7 +46,8 @@ export function AnalysisPage({w, onPredictionDataset}: {w: Workspace; onPredicti
     } finally {inspecting.current = false; setChecking(false)}
   }
   const execute = async (approve: boolean, retain = false, reason = '') => {await w.analyze(approve, retain, reason); setStep('')}
-  const reviewOrRun = (approve: boolean) => {setApproved(approve); if (s && s.flagged > s.reviewed) setStep('iqr'); else void execute(approve).catch(() => {})}
+  // Flagged observations without a recorded decision are retained with the system's default reason; Review flagged observations stays available.
+  const reviewOrRun = (approve: boolean) => {setApproved(approve); void execute(approve, true).catch(() => {})}
   const review = () => {setApproved(false); if (!s?.approved) setStep('confirm'); else setStep('iqr')}
   const run = () => {w.setError(''); if (!s?.approved) setStep('confirm'); else reviewOrRun(false)}
   return <>

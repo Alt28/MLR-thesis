@@ -29,6 +29,11 @@ def records(frame):
     return json.loads(frame.to_json(orient="records", double_precision=12))
 
 
+# Recorded for flagged training observations the researcher did not individually correct or exclude.
+DEFAULT_RETAIN_REASON = ("Retained by default: the value comes from the recorded source data and no correction or "
+                         "exclusion was recorded; an IQR flag alone is not treated as a data error.")
+
+
 class ExperimentStore:
     def __init__(self, root):
         self.root = Path(root)
@@ -316,15 +321,14 @@ class ExperimentStore:
             remaining = sorted(set(s["prepared"].flags[ROW_ID]) - set(s["decisions"]))
             if remaining and not request.retain_remaining:
                 raise HTTPException(409, "Review the IQR-flagged observations before analysis.")
-            if remaining and not request.retain_reason.strip():
-                raise ValueError("Provide a reason for retaining the remaining flagged observations.")
+            retain_reason = request.retain_reason.strip() or DEFAULT_RETAIN_REASON
             decisions = deepcopy(s["decisions"])
             for rid in remaining:
-                decisions[rid] = dict(action="retain", reason=request.retain_reason.strip(), corrections={})
+                decisions[rid] = dict(action="retain", reason=retain_reason, corrections={})
             apply_reviews(s["prepared"].training, s["prepared"].flags, decisions)
             if remaining or not s["approved"]:
                 self.invalidate(s, {"event": "analysis_confirmation", "retained_records": remaining,
-                                    "retain_reason": request.retain_reason.strip() if remaining else None,
+                                    "retain_reason": retain_reason if remaining else None,
                                     "interaction_specification_approved": True})
                 s.update(decisions=decisions, approved=True)
                 self.save(s)

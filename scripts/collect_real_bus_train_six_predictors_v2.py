@@ -21,6 +21,7 @@ Run: python -m pip install duckdb openpyxl tzdata
      python collect_real_bus_train_six_predictors_v2.py --mode train
      python collect_real_bus_train_six_predictors_v2.py --mode bus
      python collect_real_bus_train_six_predictors_v2.py --mode sunt
+     python collect_real_bus_train_six_predictors_v2.py --mode bus-waits   (NYC bus + headway waits)
 
 No synthetic data or unsupported imputation. Fail with a clear message if the
 upstream schema changes. Creates CSV datasets suitable for opening in Excel,
@@ -429,14 +430,16 @@ def train_nyc(args, db, manifest):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--mode",choices=["bus","sunt","train","train-waits","bus-arrivals","waiting-sources","linked-waits"],required=True)
+    p.add_argument("--mode",choices=["bus","sunt","train","train-waits","bus-waits","bus-arrivals","waiting-sources","linked-waits"],required=True)
     p.add_argument("--days",nargs="+",help="YYYY-MM-DD (sunt/train)")
     p.add_argument("--months",nargs="+",help="YYYY-MM (bus)")
     p.add_argument("--cache",type=pathlib.Path,default=ROOT/"raw_data_downloads")
     p.add_argument("--out",type=pathlib.Path,default=ROOT/"system_imports")
     p.add_argument("--library-dir", type=pathlib.Path, help="System data/collected directory; register import files there")
     p.add_argument("--bus-rows-per-day", type=int, default=64, help="Deterministic bus subset per local date (default 64); 0 exports all groups in CSV parts")
-    p.add_argument("--train-rows", type=int, default=10000, help="train-waits: rows in the single TRAINING file (0 = all; default 10000 trains in about 1-2 minutes)")
+    p.add_argument("--train-rows", type=int, default=10000, help="train-waits/bus-waits: rows in the single TRAINING file (0 = all; default 10000 trains in about 1-2 minutes)")
+    p.add_argument("--bus-stops", type=int, default=400, help="bus-waits: stops kept after the recall gate (stable hash order)")
+    p.add_argument("--bus-candidate-stops", type=int, default=1000, help="bus-waits: candidate stops checked by the recall gate")
     p.add_argument("--token-file", type=pathlib.Path, help="Local 511 token file for bus-arrivals; never printed")
     p.add_argument("--max-archive-mb", type=int, default=1024, help="Maximum download size per 511 archive")
     args=p.parse_args()
@@ -446,9 +449,12 @@ def main():
     manifest={"version":"v3-system-compatible","mode":args.mode,"created_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
               "fixed_predictors":HEADERS,"downloaded_sources":[],"results":{},
               "warning":"No actual observed passenger wait-time target in these sources."}
-    db = None if args.mode in ("bus-arrivals", "waiting-sources", "linked-waits") else duck()
+    db = None if args.mode in ("bus-arrivals", "waiting-sources", "linked-waits", "bus-waits") else duck()
     try:
-        if args.mode == "train-waits":
+        if args.mode == "bus-waits":
+            from etl_bus_headway_waits import collect_bus_waits
+            collect_bus_waits(args, db, manifest)
+        elif args.mode == "train-waits":
             from etl_headway_waits import collect_train_waits
             collect_train_waits(args, db, manifest)
         elif args.mode == "linked-waits":
@@ -468,7 +474,7 @@ def main():
     path=args.out/f"{args.mode.upper()}_SOURCE_MANIFEST_V3.json"
     path.write_text(json.dumps(manifest,indent=2,default=str),encoding="utf8")
     print(f"Source provenance: {path}")
-    if args.mode not in ("waiting-sources", "linked-waits", "train-waits"):
+    if args.mode not in ("waiting-sources", "linked-waits", "train-waits", "bus-waits"):
         print("RESEARCH CAUTION: These datasets do not include observed passenger waiting times.")
 
 if __name__=="__main__":

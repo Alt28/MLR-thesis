@@ -122,12 +122,7 @@ try {
   await dialog().getByRole('button',{name:'Approve selected interactions'}).click()
   await until(async()=>await page.getByRole('dialog').count()===0,'interactions saved')
   await action().click()
-  if((await state()).flagged) {
-    await page.getByRole('dialog').waitFor()
-    const reason=dialog().locator('textarea').last()
-    await reason.fill('Retain artificial extreme values to exercise the software review workflow.')
-    await dialog().getByRole('button',{name:'Continue Analysis',exact:true}).click()
-  }
+  // Flagged observations without a decision are retained automatically with the default reason (no prompt).
   await until(async()=>['complete','error'].includes((await state()).status),'models complete')
   let saved=await state()
   assert.equal(saved.status,'complete',saved.error)

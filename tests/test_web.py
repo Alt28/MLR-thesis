@@ -250,21 +250,21 @@ def test_single_action_analysis_preserves_reviews_and_requires_confirmation(web,
     assert s["flagged"] > 1
     assert web.post(base + "/analyze", json={"revision": 2}).status_code == 409
     assert web.post(base + "/analyze", json={"revision": 2, "approve_interactions": True}).status_code == 409
-    assert web.post(base + "/analyze", json={"revision": 2, "approve_interactions": True, "retain_remaining": True}).status_code == 400
     unchanged = web.get(base).json()
     assert unchanged["revision"] == 2 and unchanged["approved"] is False and unchanged["reviewed"] == 0
     flag = web.get(base + "/tables/flags").json()["rows"][0]
     rid = flag["Record ID"]
     s = web.put(base + "/reviews", json={"revision": 2, "record_id": rid, "action": "exclude", "reason": "Artificial test of exclusion persistence"}).json()
     assert web.post(base + "/analyze", json={"revision": 2, "approve_interactions": True, "retain_remaining": True, "retain_reason": "Fixture"}).status_code == 409
-    assert web.post(base + "/analyze", json={"revision": s["revision"], "approve_interactions": True, "retain_remaining": True, "retain_reason": "Retain artificial observations for software test"}).status_code == 202
+    assert web.post(base + "/analyze", json={"revision": s["revision"], "approve_interactions": True, "retain_remaining": True}).status_code == 202
     s = wait_for_job(web, s["id"])
     assert s["status"] == "complete" and s["reviewed"] == s["flagged"]
     assert s["reviewed_training"] == s["training"] - 1
     assert s["config"]["category_severity"] == unchanged["config"]["category_severity"]
     decisions = web.get(base + "/download/reviews").json()["decisions"]
     assert decisions[rid]["action"] == "exclude"
-    assert all(v["action"] == "retain" and v["reason"].startswith("Retain artificial") for k, v in decisions.items() if k != rid)
+    from backend.app.services.experiments import DEFAULT_RETAIN_REASON
+    assert all(v["action"] == "retain" and v["reason"] == DEFAULT_RETAIN_REASON for k, v in decisions.items() if k != rid)
     # JSON arrays and Python tuple defaults describe the same approved terms.
     documented = web.put(base + "/config", json={"revision": s["revision"], "config": {
         **s["config"], "research_notes": {"source_type": "simulated", "source_reference": "Artificial test fixture"}

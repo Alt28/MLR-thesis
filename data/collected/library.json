@@ -1,5 +1,25 @@
 [
   {
+    "id": "bus_nyc_headway_waits-training",
+    "title": "NYC Bus - TRAINING (headway waits)",
+    "mode": "Bus",
+    "filename": "BUS_NYC_HEADWAY_WAITS_TRAINING.csv",
+    "records": 10000,
+    "recordLabel": "observations",
+    "kind": "collected",
+    "note": "Up to 10000 rows with the smallest SHA-256 Record ID hashes (reproducible, station-agnostic). Headway-derived expected stop wait (minutes): exact mean, over the local hour, of time until the next recorded passage of the passenger's route at the same stop; averaged over routes serving the stop. Passages interpolated from MTA bus GTFS-realtime positions (TransitLab archive); random passenger arrival assumed; capacity/denied boarding not represented. Not an individually measured passenger wait."
+  },
+  {
+    "id": "nyc_bus_prediction_test_200",
+    "title": "NYC Bus - PREDICTION TEST (200 rows, blank waits)",
+    "mode": "Bus",
+    "filename": "NYC_BUS_PREDICTION_TEST_200.csv",
+    "records": 200,
+    "recordLabel": "observations",
+    "kind": "collected",
+    "note": "200 NYC bus stop-hours not in the training file, with Actual Waiting Time left blank for Test & Predict. The real waits are in NYC_BUS_PREDICTION_TEST_200_answers.csv."
+  },
+  {
     "id": "train_nyc_headway_waits-training",
     "title": "NYC Train - TRAINING (headway waits)",
     "mode": "Train",
