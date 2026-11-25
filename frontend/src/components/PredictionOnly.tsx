@@ -1,9 +1,9 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Download, Search } from 'lucide-react'
 import type { Cell, DatasetInspection, Experiment, PredictionOutput, Row } from '../types'
 import { columnHelp, displayValue } from '../services/presentation'
 import { format } from './Common'
-import { StationCondition } from './StationCondition'
+import { ExplainDrawer } from './ExplainDrawer'
 import { Condition, station, when } from './PredictionTable'
 
 export interface PredictionDataset {file: File; inspection: DatasetInspection}
@@ -32,11 +32,11 @@ const SEARCHABLE = ['Record ID', 'Station / Stop', 'Time of Day', 'Day of Week',
 const minutes = (value: Cell) => typeof value === 'number' && Number.isFinite(value) ? value.toFixed(2) : '—'
 
 export function PredictionResults({s, result}: {s: Experiment; result: PredictionOutput}) {
-  const [selected, setSelected] = useState(0)
+  const [selected, setSelected] = useState(-1)
+  const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [condition, setCondition] = useState('All')
   const [page, setPage] = useState(0)
-  const detail = useRef<HTMLDivElement>(null)
 
   const indexed = useMemo(() => result.rows.map((row, index) => ({row, index,
     text: SEARCHABLE.map(c => row[c] == null ? '' : String(row[c])).join(' ').toLowerCase()})), [result])
@@ -53,15 +53,13 @@ export function PredictionResults({s, result}: {s: Experiment; result: Predictio
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE))
   const current = Math.min(page, pages - 1)
   const visible = filtered.slice(current * PAGE, current * PAGE + PAGE)
-  const explain = (index: number) => {
-    setSelected(index)
-    requestAnimationFrame(() => detail.current?.scrollIntoView({behavior: 'smooth', block: 'start'}))
-  }
-  const chosen = result.rows[selected]
+  const explain = (index: number) => {setSelected(index); setOpen(true)}
+  const position = filtered.findIndex(item => item.index === selected)
+  const move = (p: number) => {const next = filtered[p]; if (next) {setSelected(next.index); setPage(Math.floor(p / PAGE))}}
 
   return <section className="uploaded-predictions" aria-label="Predictions for uploaded dataset">
     <h3>Traditional vs Enhanced MLR</h3>
-    <p className="section-caption">Traditional MLR and Enhanced MLR are each model's predicted waiting time, in minutes. Search or filter to find a specific observation, then choose <strong>Explain</strong> to see how its station condition was scored.</p>
+    <p className="section-caption">Traditional MLR and Enhanced MLR are each model's predicted waiting time, in minutes. Search or filter to find a specific observation, then choose <strong>Explain</strong> to open a panel showing how its station condition was scored.</p>
       <p className="forecast-result-count" role="status">{result.rows.length.toLocaleString()} predictions generated with model revision {result.model_revision}.</p>
       <div className="forecast-toolbar">
         <label className="search"><Search size={16}/><input aria-label="Search predictions" placeholder="Search station, day, month, time or ID…" value={query} onChange={e => {setQuery(e.target.value); setPage(0)}}/></label>
@@ -77,7 +75,7 @@ export function PredictionResults({s, result}: {s: Experiment; result: Predictio
           <td className="num"><div className="pt-prediction"><strong>{minutes(row['Baseline Predicted Waiting Time'])}</strong></div></td>
           <td className="num"><div className="pt-prediction"><strong>{minutes(row['Enhanced Predicted Waiting Time'])}</strong></div></td>
           <td><Condition label={row['Overall Station Classification']} score={row['Multi-Factor Station Score']}/></td>
-          <td className="pt-action"><button type="button" className="text-button" aria-label={`Explain ${id}`} onClick={() => explain(index)}>Explain <span aria-hidden>↓</span></button></td>
+          <td className="pt-action"><button type="button" className="text-button" aria-label={`Explain ${id}`} onClick={() => explain(index)}>Explain <span aria-hidden>↗</span></button></td>
         </tr>})}</tbody>
       </table></div>
       {!filtered.length && <p className="section-caption">No predictions match this search.</p>}
@@ -94,12 +92,6 @@ export function PredictionResults({s, result}: {s: Experiment; result: Predictio
         {result.station_summary.length > 10 && <p>First 10 stations. The downloaded observation results include every station's records.</p>}
       </div></details>}
       <button className="button small" onClick={() => downloadCsv(result)}><Download size={15}/>Download all prediction results</button>
-      <div ref={detail} className="forecast-detail" aria-live="polite">
-        {chosen && <>
-          <div className="forecast-detail-heading"><div><span className="eyebrow">SOP 3 · Station scoring</span><h4>{station(chosen)} <small>{when(chosen)}</small></h4><code title={String(chosen['Record ID'] ?? '')}>{String(chosen['Record ID'] ?? '')}</code></div>
-            <div className="forecast-detail-values"><div><span>Traditional</span><strong>{minutes(chosen['Baseline Predicted Waiting Time'])}<small> min</small></strong></div><div><span>Enhanced</span><strong>{minutes(chosen['Enhanced Predicted Waiting Time'])}<small> min</small></strong></div></div></div>
-          <StationCondition s={s} row={chosen} expanded/>
-        </>}
-      </div>
+      {open && position >= 0 && <ExplainDrawer s={s} rows={filtered.map(item => item.row)} position={position} onMove={move} close={() => setOpen(false)}/>}
   </section>
 }

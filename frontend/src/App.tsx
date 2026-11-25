@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowUpRight, BookOpen, BusFront, ChevronRight, FlaskConical, GitBranch, Layers3, LoaderCircle, TrainFront } from 'lucide-react'
+import { ArrowUpRight, BookOpen, BusFront, ChevronRight, GitBranch, Layers3, LoaderCircle, TrainFront } from 'lucide-react'
 import { useExperiment } from './hooks/useExperiment'
 import { AnalysisPage } from './pages/AnalysisPage'
 import { PredictionPage } from './pages/PredictionPage'
@@ -28,7 +28,7 @@ export default function App() {
   return <div className="research-app lab-app">
     <a className="skip-link" href="#main-content" onClick={e => {e.preventDefault(); main.current?.focus()}}>Skip to content</a>
     <aside className="lab-sidebar">
-      <a className="lab-brand" href="#/training" aria-label="Transit Lab home"><span className="lab-brand-icon"><FlaskConical size={23}/></span><span>Transit Lab<small>TRANSPORT RESEARCH</small></span></a>
+      <a className="lab-brand" href="#/training" aria-label="Transit Lab home"><span className="lab-brand-icon"><img src="/favicon.svg" alt="" width={30} height={30}/></span><span>Transit Lab<small>TRANSPORT RESEARCH</small></span></a>
       <div className="sidebar-section-label">WORKSPACE</div>
       <nav aria-label="Main navigation"><a href="#/training" aria-current={route === 'training' ? 'page' : undefined}><Layers3 size={19}/><span>Training</span><ChevronRight size={14}/></a><a href="#/predict" aria-current={route === 'prediction' ? 'page' : undefined}><GitBranch size={19}/><span>Test & Predict</span><ChevronRight size={14}/></a><a href="#/about" aria-current={route === 'about' ? 'page' : undefined}><BookOpen size={19}/><span>Methodology</span><ChevronRight size={14}/></a></nav>
       <div className="sidebar-study"><span className="sidebar-section-label">THE STUDY</span><div className="sidebar-transit-icons"><BusFront size={21}/><span/><TrainFront size={21}/></div><strong>Better understand<br/>the waiting time.</strong><p>Compare Traditional and Enhanced Multiple Linear Regression.</p><a href="#/about">How it works<ArrowUpRight size={15}/></a></div>
