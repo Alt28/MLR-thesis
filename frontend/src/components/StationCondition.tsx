@@ -89,7 +89,7 @@ export function StationCondition({s, row, summaryOnly = false, expanded = false}
           : factor === 'Time of Day' ? Clock3
           : factor === 'Predicted Waiting Time' ? Gauge
           : Activity
-        return <li key={factor}>
+        return <li key={factor} className={`signal-sev-${factorScore}`}>
           <span className="signal-icon"><Icon size={16} aria-hidden="true"/></span>
           <span className="signal-copy"><strong>{factor === 'Predicted Waiting Time' ? 'Enhanced MLR predicted wait' : factor}</strong><small>{SEVERITIES[factorScore]} · {format(value, factor === 'Passenger Volume' ? 0 : 2)}{unit(factor) ? ` ${unit(factor)}` : ''}</small></span>
         </li>
