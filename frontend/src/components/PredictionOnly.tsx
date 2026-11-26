@@ -72,9 +72,9 @@ export function PredictionResults({s, result}: {s: Experiment; result: Predictio
         <thead><tr><th>Observation</th><th className="num" title={columnHelp['Baseline Predicted Waiting Time']}>Traditional (min)</th><th className="num" title={columnHelp['Enhanced Predicted Waiting Time']}>Enhanced (min)</th><th>Station condition</th><th><span className="visually-hidden">Explain</span></th></tr></thead>
         <tbody>{visible.map(({row, index}) => { const id = String(row['Record ID'] ?? ''); return <tr key={id || index} className={index === selected ? 'selected' : ''}>
           <td><div className="pt-obs"><code title={id}>{id.length > 18 ? `${id.slice(0, 16)}…` : id}</code><strong>{station(row)}</strong><small>{when(row)}</small></div></td>
-          <td className="num"><div className="pt-prediction"><strong>{minutes(row['Baseline Predicted Waiting Time'])}</strong></div></td>
-          <td className="num"><div className="pt-prediction"><strong>{minutes(row['Enhanced Predicted Waiting Time'])}</strong></div></td>
-          <td><Condition label={row['Overall Station Classification']} score={row['Multi-Factor Station Score']}/></td>
+          <td className="num pt-trad" data-label="Traditional"><div className="pt-prediction"><strong>{minutes(row['Baseline Predicted Waiting Time'])}</strong></div></td>
+          <td className="num pt-enh" data-label="Enhanced"><div className="pt-prediction"><strong>{minutes(row['Enhanced Predicted Waiting Time'])}</strong></div></td>
+          <td className="pt-cond"><Condition label={row['Overall Station Classification']} score={row['Multi-Factor Station Score']}/></td>
           <td className="pt-action"><button type="button" className="text-button" aria-label={`Explain ${id}`} onClick={() => explain(index)}>Explain <span aria-hidden>↗</span></button></td>
         </tr>})}</tbody>
       </table></div>

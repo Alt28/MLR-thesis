@@ -870,3 +870,54 @@
 .research-details-modal .prediction-reference dd {font-size:1.25rem}
 .closer-tag {font-size:.6875rem;font-weight:650;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;margin-right:8px;background:var(--mode-soft,#1b2d3f);color:var(--mode,#6cb6f5);vertical-align:1px}
 @media(max-width:700px){.details-tiles{grid-template-columns:minmax(0,1fr)}}
+
+/* Test & Predict on phones: each prediction becomes a card so Enhanced and Explain stay visible */
+@media(max-width:640px){
+  .forecast-table {min-width:0}
+  .forecast-table colgroup,.forecast-table thead {display:none}
+  .forecast-table,.forecast-table tbody {display:block;width:100%}
+  .forecast-table tr {display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"obs obs" "trad enh" "cond act";gap:10px 12px;padding:14px 12px;border-bottom:1px solid var(--border)}
+  .forecast-table td {display:block;padding:0;border:0;text-align:left;min-width:0}
+  .forecast-table td:first-child {grid-area:obs}
+  .forecast-table td.pt-trad {grid-area:trad}
+  .forecast-table td.pt-enh {grid-area:enh}
+  .forecast-table td.pt-cond {grid-area:cond;align-self:center}
+  .forecast-table td.pt-action {grid-area:act;align-self:center;justify-self:end}
+  .forecast-table td[data-label]::before {content:attr(data-label) " (min)";display:block;font-size:.6875rem;color:var(--muted);margin-bottom:2px}
+  .forecast-table td.pt-enh strong {color:#a2d7bc}
+  .forecast-table tr.selected td:first-child {box-shadow:none}
+  .forecast-table tr.selected {box-shadow:inset 3px 0 0 #6fcf9f}
+  .uploaded-predictions .table-scroll table.forecast-table[aria-label] td {width:auto;min-width:0;padding:0;border:0;white-space:normal}
+  .forecast-table .pt-obs strong,.forecast-table .pt-obs small {white-space:normal}
+  .forecast-table td.num {text-align:left}
+  .forecast-table .pt-prediction {align-items:flex-start}
+  .forecast-table .pt-prediction strong {font-size:1.0625rem}
+}
+
+/* Seven-factor threshold table: stacked rows in the Explain drawer and on phones, so no column is cut off */
+.explain-technical .classification-details table {min-width:0;width:100%;display:block}
+.explain-technical .classification-details thead {display:none}
+.explain-technical .classification-details tbody,.explain-technical .classification-details tfoot {display:block}
+.explain-technical .classification-details tbody tr {display:grid;grid-template-columns:1fr auto;grid-template-areas:"factor score" "value value" "rule rule";gap:6px 12px;padding:14px;border-bottom:1px solid var(--border)}
+.explain-technical .classification-details tbody tr>* {display:block;padding:0;border:0;width:auto}
+.explain-technical .classification-details tbody th[scope=row] {grid-area:factor}
+.explain-technical .classification-details tbody td.factor-value {grid-area:value}
+.explain-technical .classification-details tbody td.factor-rule {grid-area:rule}
+.explain-technical .classification-details tbody td:last-child {grid-area:score;text-align:right}
+.explain-technical .classification-details tbody td:last-child .factor-score {display:inline;margin:0 0 0 6px}
+.explain-technical .classification-details tfoot tr {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.explain-technical .classification-details tfoot tr>* {display:block;padding:14px;border:0}
+@media(max-width:640px){
+  .classification-details table {min-width:0;width:100%;display:block}
+  .classification-details thead {display:none}
+  .classification-details tbody,.classification-details tfoot {display:block}
+  .classification-details tbody tr {display:grid;grid-template-columns:1fr auto;grid-template-areas:"factor score" "value value" "rule rule";gap:6px 12px;padding:14px;border-bottom:1px solid var(--border)}
+  .classification-details tbody tr>* {display:block;padding:0;border:0;width:auto}
+  .classification-details tbody th[scope=row] {grid-area:factor}
+  .classification-details tbody td.factor-value {grid-area:value}
+  .classification-details tbody td.factor-rule {grid-area:rule}
+  .classification-details tbody td:last-child {grid-area:score;text-align:right}
+  .classification-details tbody td:last-child .factor-score {display:inline;margin:0 0 0 6px}
+  .classification-details tfoot tr {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .classification-details tfoot tr>* {display:block;padding:14px;border:0}
+}
