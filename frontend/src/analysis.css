@@ -921,3 +921,4 @@
   .classification-details tfoot tr {display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .classification-details tfoot tr>* {display:block;padding:14px;border:0}
 }
+.sop-breakdown {scroll-margin-top:12px}

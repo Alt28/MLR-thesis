@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Experiment, Row } from '../types'
 import { LABELS, PREDICTORS } from '../types'
 import { api } from '../services/api'
@@ -14,6 +14,12 @@ export function SOPSolutions({s, busy, onReview}: {s: Experiment | null; busy: b
   const [table, setTable] = useState('bounds')
   const [row, setRow] = useState<Row | null>(null)
   const [error, setError] = useState('')
+  const breakdown = useRef<HTMLDivElement>(null)
+  // The breakdown sits below a long table; bring it into view when an observation is chosen.
+  const explain = (picked: Row) => {
+    setRow(picked)
+    requestAnimationFrame(() => breakdown.current?.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start'}))
+  }
   const complete = s?.status === 'complete' && !s.classification_stale
   const terms = s ? [...s.config.pairwise_interactions, ...s.config.higher_order_interactions] : []
   const outcome = (comparison: string) => {
@@ -83,9 +89,9 @@ export function SOPSolutions({s, busy, onReview}: {s: Experiment | null; busy: b
         <p>Missing units, unresolved directions, unknown categories, or insufficient variation can leave a factor unresolved. The system then reports Requires Researcher Decision instead of filling in a score.</p>
         {complete ? <>
           <p>Select an observation to inspect its seven scores and the rule used for each.</p>
-          <DataTable s={s} name="classification" columns={['Record ID', 'Enhanced Predicted Waiting Time', 'Overall Station Classification', 'Multi-Factor Station Score']} onRow={setRow} actionLabel="Explain scores"/>
+          <DataTable s={s} name="classification" columns={['Record ID', 'Enhanced Predicted Waiting Time', 'Overall Station Classification', 'Multi-Factor Station Score']} onRow={explain} actionLabel="Explain scores"/>
           {error && <p className="inline-error" role="alert">{error}</p>}
-          {row && <><p className="observation-label">Observation <strong>{String(row['Record ID'])}</strong></p><StationCondition s={s} row={row} expanded/></>}
+          <div ref={breakdown} className="sop-breakdown">{row && <><p className="observation-label">Observation <strong>{String(row['Record ID'])}</strong></p><StationCondition s={s} row={row} expanded/></>}</div>
         </> : <p>Analyze the training dataset to calculate predictions and observation scores.</p>}
         <details className="disclosure"><summary>Training thresholds and category evidence</summary><div className="disclosure-body"><DataTable s={s} name="thresholds"/><DataTable s={s} name="evidence"/></div></details>
         {complete && s.station_aggregation.available && <details className="disclosure"><summary>Station summaries from evaluation records</summary><div className="disclosure-body"><DataTable s={s} name="station_summary"/></div></details>}
