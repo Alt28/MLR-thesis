@@ -10,14 +10,27 @@ export function CloudImport({w, upload}: {w: Workspace; upload: (file: File) => 
   const [open, setOpen] = useState(false)
   const [datasetLibrary, setLibrary] = useState<LibraryDataset[]>([])
   const [listing, setListing] = useState(false)
+  const [waking, setWaking] = useState(false)
   useEffect(() => {
     if (!open) return
-    let active = true; setListing(true); setLibrary([])
-    api.library().then(items => {if (active) setLibrary(items)}).catch(e => {
+    let active = true; setListing(true); setLibrary([]); setWaking(false)
+    // A hosted server that was asleep can take up to a minute to answer; retry instead of showing an empty library.
+    const load = async () => {
+      for (let attempt = 0; ; attempt++) {
+        try { return await api.library() }
+        catch (e) {
+          const retryable = !(e instanceof ApiError) || e.status >= 500
+          if (!retryable || attempt >= 5 || !active) throw e
+          setWaking(true)
+          await new Promise(resolve => setTimeout(resolve, 6000))
+        }
+      }
+    }
+    load().then(items => {if (active) setLibrary(items)}).catch(e => {
       if(active) setError(e instanceof ApiError && e.status === 404
         ? 'This window is connected to an older server. Open Start MLR System.bat again and use the browser window it opens. Your collected files are still saved.'
         : e.message)
-    }).finally(() => {if(active) setListing(false)})
+    }).finally(() => {if(active) {setListing(false); setWaking(false)}})
     return () => {active = false}
   }, [open])
   const [query, setQuery] = useState('')
@@ -53,7 +66,7 @@ export function CloudImport({w, upload}: {w: Workspace; upload: (file: File) => 
             <span className="library-file-copy"><span className="library-file-title">{item.title}</span><span className="library-file-description">{item.filename}</span><span className="library-file-meta">{item.records.toLocaleString()} {item.recordLabel} · {item.filename.endsWith('.csv') ? 'CSV' : 'XLSX'}</span>{item.note && <span className="library-file-note">{item.note}</span>}</span>
             <span className="library-select">{loadingId === item.id ? 'Loading…' : 'Import'}<ArrowRight size={16}/></span>
           </button>)}
-          {listing && <p role="status">Loading collected datasets...</p>}
+          {listing && <p role="status">{waking ? 'Waking up the server. This can take up to a minute the first time…' : 'Loading collected datasets...'}</p>}
           {!listing && !error && !matches.length && <div className="library-empty"><Search size={24}/><strong>No datasets found</strong><p>No collected files match this search. Use Upload Dataset or register the ETL output with this server.</p><button className="text-button" onClick={() => setQuery('')}>Clear search</button></div>}
           {busy && <p role="status" className="cloud-import-status"><LoaderCircle size={17} className="spinning"/>Loading and checking your dataset…</p>}
         </div>
